@@ -895,10 +895,11 @@ function renderMuRoles(){
   document.getElementById('mu-roles').innerHTML=ROLES.map(r=>{
     const active=muRole===r;
     const rc=getRoleColor(r);
-    return`<button onclick="muRole='${r}';renderMuRoles()" style="padding:7px 12px;border-radius:10px;border:2px solid ${active?rc+'88':'var(--border)'};background:${active?rc+'18':'var(--bg2)'};color:${active?rc:'var(--muted)'};font-weight:700;font-size:12px;cursor:pointer;transition:all .2s">${r}</button>`;
+    return`<button onclick="window.__setMuRole('${r}')" style="padding:7px 12px;border-radius:10px;border:2px solid ${active?rc+'88':'var(--border)'};background:${active?rc+'18':'var(--bg2)'};color:${active?rc:'var(--muted)'};font-weight:700;font-size:12px;cursor:pointer;transition:all .2s">${r}</button>`;
   }).join('');
 }
 window.renderMuRoles=renderMuRoles;
+window.__setMuRole=(r)=>{muRole=r;renderMuRoles();};
 
 async function saveUserModal(){
   const uid=document.getElementById('modal-uid').value;
