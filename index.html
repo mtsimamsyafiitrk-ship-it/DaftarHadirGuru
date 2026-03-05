@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Daftar Hadir Halaqah</title>
+<title>Daftar Hadir Pengajar</title>
 <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -1431,7 +1431,7 @@ window.exportUsersPdf=()=>{
     </div>
   </div>
   <h2>Daftar Pengguna Sistem</h2>
-  <h3>Data Akun Aplikasi Daftar Hadir Halaqah</h3>
+  <h3>Data Akun Aplikasi Daftar Hadir Pengajar</h3>
   <table>
     <thead><tr><th style="width:35px">No</th><th>Nama</th><th>Jabatan</th><th style="width:120px">Username</th><th style="width:120px">Password</th></tr></thead>
     <tbody>${rows}</tbody>
@@ -1716,7 +1716,7 @@ window.__printM=(uid)=>{
   const y=cYear,m=cMonth,tw=wim(y,m),monthly=mRec(uid,y,m),td=dim(y,m);
   const u=users.find(x=>x.id===uid)||currentUser;
   const uRolesStr=u?rolesText(u):'';  let html=`<html><head><title>Rekap ${MONTHS[m]} ${y}</title><style>body{font-family:Arial,sans-serif;padding:20px;color:#2d3748}h1{color:#5a9b86;font-size:20px}h2{color:#4d8fa0;font-size:15px;margin:16px 0 8px}table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px}th{background:#5a9b86;color:#fff;padding:8px;text-align:left}td{padding:6px 8px;border-bottom:1px solid #e2e8f0}tr:nth-child(even){background:#f7f9fc}.tot{background:#e8f4f0;font-weight:bold}.sc{font-size:32px;font-weight:900;color:#5a9b86;text-align:center;margin:16px 0}.sub{color:#8a97a8;font-size:12px;text-align:center}</style></head><body>
-  <h1>🕌 Rekap Daftar Hadir Halaqah</h1><p style="color:#8a97a8;font-size:13px">${u?.name} · ${uRolesStr} · ${MONTHS[m]} ${y}</p>`;
+  <h1>🕌 Rekap Daftar Hadir Pengajar</h1><p style="color:#8a97a8;font-size:13px">${u?.name} · ${uRolesStr} · ${MONTHS[m]} ${y}</p>`;
   for(let w=1;w<=tw;w++){const wr=wRec(uid,y,m,w);html+=`<h2>Pekan ${w}</h2><table><tr><th>Sesi</th><th>Keterangan</th><th>Hadir</th><th>Poin (×2)</th></tr>${SESSIONS.map(s=>`<tr><td>${s.label}</td><td>${s.desc}</td><td>${wr.totals[s.key]}</td><td>${wr.totals[s.key]*2}</td></tr>`).join('')}<tr class="tot"><td colspan="2">Total Pekan ${w}</td><td colspan="2">${wr.totalScore} poin</td></tr></table>`;}
   html+=`<h2 style="color:#5a9b86">📅 Total Bulanan</h2><table><tr><th>Sesi</th><th>Keterangan</th><th>Hadir</th><th>Poin (×2)</th></tr>${SESSIONS.map(s=>`<tr><td>${s.label}</td><td>${s.desc}</td><td>${monthly.totals[s.key]}</td><td>${monthly.totals[s.key]*2}</td></tr>`).join('')}<tr class="tot"><td colspan="2">GRAND TOTAL</td><td colspan="2">${monthly.totalScore} poin</td></tr></table><div class="sc">${monthly.totalScore}</div><div class="sub">Total Poin ${MONTHS[m]} ${y} — ${td} hari</div></body></html>`;
   const w=window.open("","_blank");w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),400);
@@ -1729,7 +1729,7 @@ window.__exportMExcel=(uid)=>{
   const jabatan=u?rolesText(u):'';
   // Header info rows
   const rows=[
-    ['Daftar Hadir Halaqah'],
+    ['Daftar Hadir Pengajar'],
     ['Nama',nama],
     ['Jabatan',jabatan],
     ['Bulan',`${MONTHS[m]} ${y}`],
