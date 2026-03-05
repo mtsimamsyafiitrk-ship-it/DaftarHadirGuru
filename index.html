@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Daftar Hadir Halaqah</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f4f8;
+  --bg2:#e8edf2;
+  --card:#ffffff;
+  --card2:#f7f9fc;
+  --border:#dde3ea;
+  --border2:#c8d0da;
+  --text:#2d3748;
+  --text2:#4a5568;
+  --muted:#8a97a8;
+  --sage:#7fb3a0;
+  --sage2:#5a9b86;
+  --sage3:#e8f4f0;
+  --sage4:#d0ebe4;
+  --teal:#6ba8b8;
+  --teal2:#4d8fa0;
+  --teal3:#e5f2f6;
+  --rose:#c4868e;
+  --rose2:#a86870;
+  --rose3:#f5e8ea;
+  --amber:#c4a46b;
+  --amber2:#a8874d;
+  --amber3:#f5eedf;
+  --lavender:#9b8fc4;
+  --lavender2:#7b6ea8;
+  --lavender3:#eeeaf7;
+  --sky:#7da8c4;
+  --sky2:#5a8aaa;
+  --sky3:#e5eef5;
+  --shadow:0 2px 12px rgba(45,55,72,0.08);
+  --shadow2:0 4px 24px rgba(45,55,72,0.12);
+}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+  background-image:radial-gradient(ellipse 60% 40% at 20% 10%,rgba(127,179,160,0.12),transparent),
+  radial-gradient(ellipse 50% 40% at 80% 90%,rgba(107,168,184,0.1),transparent);}
+button{cursor:pointer;font-family:inherit}
+input{font-family:inherit}
+
+/* ── LAYOUT ── */
+.screen{display:none}.screen.active{display:block}
+.header{padding:14px 16px 10px;position:sticky;top:0;z-index:100;
+  background:rgba(240,244,248,0.92);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);box-shadow:0 1px 8px rgba(45,55,72,0.06)}
+.hinner{display:flex;align-items:center;gap:12px;max-width:680px;margin:0 auto}
+.hrow{max-width:680px;margin:8px auto 0;display:flex;align-items:center;gap:10px}
+.body{max-width:680px;margin:0 auto;padding:16px 14px 90px}
+
+/* ── CARDS ── */
+.card{background:var(--card);border-radius:18px;padding:16px;border:1px solid var(--border);margin-bottom:12px;box-shadow:var(--shadow)}
+.card-sage{border-color:var(--sage4);background:linear-gradient(135deg,#f0f9f6,#ffffff)}
+.card-teal{border-color:#c2dde5;background:linear-gradient(135deg,#eef6f9,#ffffff)}
+.card-rose{border-color:#e8cdd0;background:linear-gradient(135deg,#faf3f4,#ffffff)}
+.card-amber{border-color:#e8dac4;background:linear-gradient(135deg,#faf5eb,#ffffff)}
+.card-lavender{border-color:#d8d2ec;background:linear-gradient(135deg,#f5f3fc,#ffffff)}
+.card-sky{border-color:#c2d8e8;background:linear-gradient(135deg,#eef4f9,#ffffff)}
+
+/* ── BUTTONS ── */
+.btn{border:none;border-radius:12px;padding:10px 18px;font-weight:700;font-size:13px;transition:all .2s}
+.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow2)}
+.btn:active{transform:translateY(0)}
+.btn-sage{background:linear-gradient(135deg,#7fb3a0,#5a9b86);color:#fff;box-shadow:0 2px 8px rgba(90,155,134,0.3)}
+.btn-teal{background:linear-gradient(135deg,#6ba8b8,#4d8fa0);color:#fff}
+.btn-rose{background:linear-gradient(135deg,#c4868e,#a86870);color:#fff}
+.btn-amber{background:linear-gradient(135deg,#c4a46b,#a8874d);color:#fff}
+.btn-lavender{background:linear-gradient(135deg,#9b8fc4,#7b6ea8);color:#fff}
+.btn-gray{background:#f0f2f5;border:1px solid var(--border)!important;color:var(--muted);font-weight:600}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2);border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;transition:all .2s}
+.btn-ghost:hover{background:var(--bg2)}
+.btn-icon{background:none;border:none;font-size:17px;padding:5px 8px;transition:transform .2s;border-radius:8px}
+.btn-icon:hover{transform:scale(1.15);background:var(--bg2)}
+.btn-nav{background:var(--card);border:1px solid var(--border);color:var(--text2);border-radius:12px;width:44px;height:44px;font-size:20px;font-weight:900;transition:all .2s;box-shadow:var(--shadow)}
+.btn-nav:hover{background:var(--sage3);border-color:var(--sage4)}
+.btn-tab{flex:1;padding:9px 6px;border-radius:12px;border:none;font-weight:700;font-size:12px;transition:all .25s}
+.btn-tab.active{background:linear-gradient(135deg,#7fb3a0,#5a9b86);color:#fff;box-shadow:0 2px 10px rgba(90,155,134,0.3)}
+.btn-tab:not(.active){background:var(--bg2);color:var(--muted);border:1px solid var(--border)}
+.btn-week{padding:8px 14px;border-radius:10px;border:1px solid var(--border);font-weight:700;font-size:12px;transition:all .2s;flex-shrink:0;background:var(--card);color:var(--muted)}
+.btn-week.active{background:linear-gradient(135deg,#7fb3a0,#5a9b86);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(90,155,134,0.3)}
+
+/* ── INPUTS ── */
+.input{width:100%;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-size:14px;outline:none;transition:border .2s;font-weight:500}
+.input:focus{border-color:var(--sage);box-shadow:0 0 0 3px rgba(127,179,160,0.15)}
+.input::placeholder{color:var(--muted)}
+.input[type="date"]{color-scheme:light}
+.input-wrap{position:relative;margin-bottom:12px}
+.input-wrap label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;letter-spacing:0.3px;text-transform:uppercase}
+.input-wrap .eye{position:absolute;right:12px;bottom:11px;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer}
+
+/* ── LOGO ── */
+.logo-gem{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#7fb3a0,#5a9b86);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 12px rgba(90,155,134,0.3);flex-shrink:0}
+.app-title{font-family:'Amiri',serif;font-size:18px;font-weight:700;color:var(--text);line-height:1.2}
+.app-sub{font-size:11px;color:var(--sage2);letter-spacing:0.3px;margin-top:1px;font-weight:600}
+
+/* ── ROLE COLORS ── */
+.role-color-0{color:#5a9b86} /* Pengajar */
+.role-color-1{color:#4d8fa0} /* Staf */
+.role-color-2{color:#7b6ea8} /* Admin Halaqah */
+.role-color-3{color:#a86870} /* Kepala Madrasah */
+.role-color-4{color:#a8874d} /* Bendahara */
+
+/* ── BADGE ── */
+.badge{border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;display:inline-block}
+.badge-sage{background:var(--sage3);color:var(--sage2);border:1px solid var(--sage4)}
+.badge-teal{background:var(--teal3);color:var(--teal2);border:1px solid #c2dde5}
+.badge-lavender{background:var(--lavender3);color:var(--lavender2);border:1px solid #d8d2ec}
+.badge-rose{background:var(--rose3);color:var(--rose2);border:1px solid #e8cdd0}
+.badge-amber{background:var(--amber3);color:var(--amber2);border:1px solid #e8dac4}
+
+/* ── LOGIN ── */
+.login-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.login-box{width:100%;max-width:380px}
+.login-logo{text-align:center;margin-bottom:32px}
+.login-logo .gem{width:76px;height:76px;border-radius:24px;background:linear-gradient(135deg,#7fb3a0,#5a9b86);display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto 16px;box-shadow:0 8px 24px rgba(90,155,134,0.3)}
+.login-logo h1{font-family:'Amiri',serif;font-size:24px;font-weight:700;color:var(--text)}
+.login-logo p{font-size:12px;color:var(--muted);margin-top:5px;font-weight:600}
+.login-card{background:var(--card);border-radius:24px;padding:28px;box-shadow:var(--shadow2);border:1px solid var(--border)}
+.login-role-tabs{display:flex;gap:8px;margin-bottom:20px}
+.login-role-tab{flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg2);color:var(--muted);font-weight:700;font-size:13px;transition:all .2s}
+.login-role-tab.active{border-color:var(--sage);background:var(--sage3);color:var(--sage2)}
+.login-err{background:var(--rose3);border:1px solid #e8cdd0;border-radius:12px;padding:10px 14px;color:var(--rose2);font-size:13px;font-weight:600;margin-bottom:12px;display:none}
+
+/* ── USER CARD ── */
+.ucard{border-radius:16px;padding:16px;border:1px solid var(--border);margin-bottom:10px;background:var(--card);transition:all .2s;box-shadow:var(--shadow)}
+.ucard:hover{border-color:var(--sage4);transform:translateY(-1px);box-shadow:var(--shadow2)}
+.avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#7fb3a0,#5a9b86);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;flex-shrink:0;color:#fff}
+
+/* ── CALENDAR ── */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-hdr{text-align:center;font-weight:700;font-size:10px;color:var(--muted);padding:6px 0;letter-spacing:0.5px}
+.cal-day{border-radius:10px;padding:5px 2px;text-align:center;cursor:pointer;transition:all .15s;border:1.5px solid transparent;min-height:54px}
+.cal-day:hover{background:var(--sage3)}
+.cal-day.has-d{background:linear-gradient(135deg,#e8f4f0,#f0f9f6);border-color:var(--sage4)}
+.cal-day.editing{background:var(--teal3);border:2px solid var(--teal)!important}
+.cal-day.is-today{border:2px solid var(--sage)!important}
+.cal-day-num{font-weight:800;font-size:12px;color:var(--text)}
+.cal-day.is-today .cal-day-num{color:var(--sage2)}
+.cal-score{font-size:9px;color:var(--sage2);font-weight:800;margin-top:1px}
+.cal-dots{display:flex;flex-wrap:wrap;gap:1px;justify-content:center;margin-top:2px}
+.dot{width:5px;height:5px;border-radius:50%;display:inline-block}
+
+/* ── SESSION GRID ── */
+.sess-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sess-btn{border-radius:14px;padding:11px 5px;font-weight:700;font-size:12px;transition:all .2s;text-align:center;cursor:pointer;border:2px solid transparent}
+.sess-btn:hover{transform:scale(1.03)}
+.s-icon{font-size:20px;margin-bottom:2px}
+.s-desc{font-size:9px;font-weight:500;color:var(--muted);margin-top:3px;line-height:1.3}
+
+/* ── MISC ── */
+.chip{border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;display:inline-block;margin:2px}
+.score-badge{text-align:center;border-radius:16px;padding:18px;margin-top:12px}
+.recap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.recap-item{background:var(--card2);border-radius:12px;padding:10px;text-align:center;border:1px solid var(--border)}
+.bar-wrap{display:flex;align-items:flex-end;gap:4px;height:110px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px}
+.bar-val{font-size:8px;color:var(--sage2);font-weight:800;min-height:12px}
+.bar-bar{width:100%;border-radius:5px 5px 0 0;transition:height .4s;background:linear-gradient(to top,#7fb3a0,#5a9b86);min-height:0}
+.bar-lbl{font-size:7px;color:var(--muted);text-align:center;font-weight:600}
+.day-card{border-radius:16px;border:1px solid var(--border);overflow:hidden;margin-bottom:10px;box-shadow:var(--shadow)}
+.day-card-hdr{display:flex;align-items:center;gap:14px;padding:14px;cursor:pointer;background:var(--card);transition:background .15s}
+.day-card-hdr:hover{background:var(--bg2)}
+.day-num-box{width:46px;height:46px;border-radius:14px;background:var(--bg2);border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+.day-num-box.today{background:linear-gradient(135deg,#7fb3a0,#5a9b86);border:none;box-shadow:0 2px 8px rgba(90,155,134,0.3)}
+.day-num-box.today div{color:#fff!important}
+.day-body{border-top:1px solid var(--border);padding:14px;background:var(--bg2);display:none}
+.day-body.open{display:block}
+.edit-panel{border-radius:18px;padding:16px;border:2px solid #c2dde5;background:linear-gradient(135deg,#eef6f9,#fff);margin-top:12px;box-shadow:var(--shadow)}
+.legend{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
+.sec-title{font-weight:800;font-size:15px;color:var(--text);display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.sec-title::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent)}
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}
+.divider{height:1px;background:var(--border);margin:16px 0}
+
+/* ── RECAP TABLE ── */
+.recap-table-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.recap-table{width:100%;border-collapse:collapse;font-size:13px;min-width:500px}
+.recap-table th{background:linear-gradient(135deg,#7fb3a0,#5a9b86);color:#fff;padding:11px 10px;text-align:center;font-weight:700;font-size:12px;white-space:nowrap}
+.recap-table th:first-child{border-radius:13px 0 0 0}
+.recap-table th:last-child{border-radius:0 13px 0 0}
+.recap-table td{padding:10px;text-align:center;border-bottom:1px solid var(--border);font-weight:600;font-size:13px;color:var(--text2);background:#fff}
+.recap-table td:nth-child(2){text-align:left;font-weight:700;color:var(--text)}
+.recap-table tr:last-child td{border-bottom:none}
+.recap-table tr:nth-child(even) td{background:var(--card2)}
+.recap-table tr:hover td{background:var(--sage3)}
+.recap-table .total-row td{background:linear-gradient(135deg,#e8f4f0,#f0f9f6)!important;font-weight:800;color:var(--sage2);border-top:2px solid var(--sage4)}
+
+/* ── LOADING / TOAST ── */
+.loading-overlay{position:fixed;inset:0;background:rgba(240,244,248,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(8px)}
+.spinner{width:48px;height:48px;border:4px solid var(--sage4);border-top-color:var(--sage2);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--sage2);color:#fff;padding:10px 20px;border-radius:12px;font-weight:700;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;box-shadow:var(--shadow2);white-space:nowrap}
+.toast.show{opacity:1}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .3s ease forwards}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(45,55,72,0.4);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal{background:#fff;border-radius:22px;padding:24px;width:100%;max-width:420px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(45,55,72,0.2)}
+.modal h3{font-family:'Amiri',serif;font-size:19px;font-weight:700;margin-bottom:16px;color:var(--sage2)}
+
+/* ── NAVBAR ── */
+.navbar{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,0.95);border-top:1px solid var(--border);backdrop-filter:blur(20px);padding:8px 16px 12px;z-index:100;box-shadow:0 -4px 16px rgba(45,55,72,0.08)}
+.navbar-inner{display:flex;justify-content:space-around;max-width:680px;margin:0 auto}
+.nav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--muted);font-size:11px;font-weight:700;padding:6px 18px;border-radius:12px;transition:all .2s}
+.nav-btn.active{color:var(--sage2);background:var(--sage3)}
+.nav-btn span{font-size:20px}
+
+/* ── MONTH SELECTOR ── */
+.month-nav{display:flex;align-items:center;justify-content:space-between;background:var(--card);border-radius:16px;padding:12px 16px;border:1px solid var(--border);margin-bottom:12px;box-shadow:var(--shadow)}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading" class="loading-overlay">
+  <div class="spinner"></div>
+  <div id="loading-msg" style="color:var(--sage2);font-weight:800;font-size:15px">Memuat aplikasi...</div>
+  <div style="color:var(--muted);font-size:12px;margin-top:6px;font-weight:600">Mohon tunggu sebentar</div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast"></div>
+
+<!-- ══════════════════ LOGIN ══════════════════ -->
+<div id="screen-login" class="screen">
+  <div class="login-wrap">
+    <div class="login-box">
+      <div class="login-logo">
+        <div class="gem">🕌</div>
+        <h1>Daftar Hadir Halaqah</h1>
+        <p>☁️ Sistem Absensi Digital Terpadu</p>
+      </div>
+      <div class="login-card">
+        <div class="login-role-tabs">
+          <button class="login-role-tab active" id="rtab-user" onclick="setLoginRole('user')">👤 Pengguna</button>
+          <button class="login-role-tab" id="rtab-admin" onclick="setLoginRole('admin')">🔐 Admin</button>
+        </div>
+        <div id="login-err" class="login-err"></div>
+        <div class="input-wrap">
+          <label>Username</label>
+          <input id="l-user" class="input" placeholder="Masukkan username..." onkeydown="if(event.key==='Enter')doLogin()"/>
+        </div>
+        <div class="input-wrap">
+          <label>Password</label>
+          <input id="l-pass" class="input" type="password" placeholder="Masukkan password..." onkeydown="if(event.key==='Enter')doLogin()"/>
+          <button class="eye" onclick="togglePw('l-pass',this)">👁️</button>
+        </div>
+        <button class="btn btn-sage" style="width:100%;margin-top:4px;padding:13px;font-size:15px" onclick="doLogin()">Masuk →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ ADMIN: PENGGUNA ══════════════════ -->
+<div id="screen-admin-users" class="screen">
+  <div class="header">
+    <div class="hinner">
+      <div class="logo-gem">🕌</div>
+      <div style="flex:1">
+        <div class="app-title">Panel Admin</div>
+        <div class="app-sub">Kelola Pengguna</div>
+      </div>
+      <button class="btn-ghost" onclick="doLogout()">Keluar</button>
+    </div>
+  </div>
+  <div class="body">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div class="sec-title">👥 Daftar Pengguna</div>
+      <button class="btn btn-sage" style="font-size:12px;padding:8px 14px" onclick="openAddUserModal()">+ Tambah</button>
+    </div>
+    <div id="admin-user-list"></div>
+  </div>
+  <div class="navbar"><div class="navbar-inner">
+    <button class="nav-btn active" id="anav-users" onclick="adminNav('users')"><span>👥</span>Pengguna</button>
+    <button class="nav-btn" id="anav-rekap" onclick="adminNav('rekap')"><span>📊</span>Rekapitulasi</button>
+    <button class="nav-btn" id="anav-profile" onclick="adminNav('profile')"><span>⚙️</span>Profil</button>
+  </div></div>
+</div>
+
+<!-- ══════════════════ ADMIN: REKAPITULASI ══════════════════ -->
+<div id="screen-admin-rekap" class="screen">
+  <div class="header">
+    <div class="hinner">
+      <div class="logo-gem">🕌</div>
+      <div style="flex:1">
+        <div class="app-title">Rekapitulasi</div>
+        <div class="app-sub">Kehadiran Bulanan</div>
+      </div>
+      <button class="btn-ghost" onclick="doLogout()">Keluar</button>
+    </div>
+  </div>
+  <div class="body">
+    <!-- Month/Year selector -->
+    <div class="month-nav">
+      <button class="btn-nav" onclick="rekapPrevMonth()">‹</button>
+      <div style="text-align:center">
+        <div id="rekap-month" style="font-weight:800;font-size:18px;font-family:'Amiri',serif;color:var(--text)"></div>
+        <div id="rekap-year" style="color:var(--sage2);font-size:13px;font-weight:700"></div>
+      </div>
+      <button class="btn-nav" onclick="rekapNextMonth()">›</button>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px">
+      <button class="btn btn-teal" style="font-size:12px;padding:8px 14px" onclick="exportRekapExcel()">📊 Export Excel</button>
+      <button class="btn btn-amber" style="font-size:12px;padding:8px 14px" onclick="printRekap()">🖨️ Cetak PDF</button>
+    </div>
+    <div id="rekap-table-wrap"></div>
+  </div>
+  <div class="navbar"><div class="navbar-inner">
+    <button class="nav-btn" id="anav-users2" onclick="adminNav('users')"><span>👥</span>Pengguna</button>
+    <button class="nav-btn active" id="anav-rekap2" onclick="adminNav('rekap')"><span>📊</span>Rekapitulasi</button>
+    <button class="nav-btn" id="anav-profile2" onclick="adminNav('profile')"><span>⚙️</span>Profil</button>
+  </div></div>
+</div>
+
+<!-- ══════════════════ ADMIN: PROFIL ══════════════════ -->
+<div id="screen-admin-profile" class="screen">
+  <div class="header">
+    <div class="hinner">
+      <div class="logo-gem">🕌</div>
+      <div style="flex:1"><div class="app-title">Profil Admin</div><div class="app-sub">Keamanan Akun</div></div>
+      <button class="btn-ghost" onclick="doLogout()">Keluar</button>
+    </div>
+  </div>
+  <div class="body">
+    <div class="card card-sage" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="avatar" style="width:54px;height:54px;font-size:26px;border-radius:16px">🔐</div>
+        <div>
+          <div style="font-weight:800;font-size:17px">Administrator</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">Username: <span style="color:var(--sage2);font-weight:700">admin</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-weight:800;font-size:15px;color:var(--amber2);margin-bottom:16px">🔑 Ganti Password Admin</div>
+      <div class="input-wrap"><label>Password Lama</label><input id="ap-old" class="input" type="password" placeholder="Password lama..."/><button class="eye" onclick="togglePw('ap-old',this)">👁️</button></div>
+      <div class="input-wrap"><label>Password Baru</label><input id="ap-new" class="input" type="password" placeholder="Password baru..."/><button class="eye" onclick="togglePw('ap-new',this)">👁️</button></div>
+      <div class="input-wrap"><label>Konfirmasi Password Baru</label><input id="ap-conf" class="input" type="password" placeholder="Ulangi password baru..."/><button class="eye" onclick="togglePw('ap-conf',this)">👁️</button></div>
+      <button class="btn btn-amber" style="width:100%;margin-top:4px" onclick="changeAdminPw()">💾 Simpan Password</button>
+    </div>
+  </div>
+  <div class="navbar"><div class="navbar-inner">
+    <button class="nav-btn" id="anav-users3" onclick="adminNav('users')"><span>👥</span>Pengguna</button>
+    <button class="nav-btn" id="anav-rekap3" onclick="adminNav('rekap')"><span>📊</span>Rekapitulasi</button>
+    <button class="nav-btn active" id="anav-profile3" onclick="adminNav('profile')"><span>⚙️</span>Profil</button>
+  </div></div>
+</div>
+
+<!-- ══════════════════ ADMIN: LIHAT ABSENSI USER ══════════════════ -->
+<div id="screen-admin-att" class="screen">
+  <div class="header">
+    <div class="hinner">
+      <button class="btn-ghost" onclick="adminNav('users')">← Kembali</button>
+      <div style="flex:1;text-align:center">
+        <div id="aa-name" style="font-weight:800;font-size:16px"></div>
+        <div id="aa-role" style="font-size:11px;color:var(--sage2);font-weight:600"></div>
+      </div>
+      <div style="width:70px"></div>
+    </div>
+    <div class="hrow" style="justify-content:space-between;margin-top:12px">
+      <button class="btn-nav" onclick="prevMonth()">‹</button>
+      <div style="text-align:center">
+        <div id="att-month2" style="font-weight:800;font-size:20px;font-family:'Amiri',serif;color:var(--text)"></div>
+        <div id="att-year2" style="color:var(--sage2);font-size:13px;font-weight:700"></div>
+      </div>
+      <button class="btn-nav" onclick="nextMonth()">›</button>
+    </div>
+    <div class="hrow" style="gap:6px;padding-bottom:4px">
+      <button class="btn-tab active" id="tab-monthly2" onclick="switchTab2('monthly')">📅 Bulanan</button>
+      <button class="btn-tab" id="tab-weekly2" onclick="switchTab2('weekly')">📆 Pekanan</button>
+      <button class="btn-tab" id="tab-recap2" onclick="switchTab2('recap')">📊 Rekap</button>
+    </div>
+  </div>
+  <div class="body">
+    <div id="view-monthly2"></div>
+    <div id="view-weekly2" style="display:none"></div>
+    <div id="view-recap2" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ══════════════════ USER: ABSENSI ══════════════════ -->
+<div id="screen-user-att" class="screen">
+  <div class="header">
+    <div class="hinner">
+      <div class="logo-gem">🕌</div>
+      <div style="flex:1;text-align:center">
+        <div id="u-name" style="font-weight:800;font-size:16px"></div>
+        <div id="u-role" style="font-size:11px;color:var(--sage2);font-weight:600"></div>
+      </div>
+      <button class="btn-ghost" onclick="doLogout()">Keluar</button>
+    </div>
+    <div class="hrow" style="justify-content:space-between;margin-top:12px">
+      <button class="btn-nav" onclick="prevMonth()">‹</button>
+      <div style="text-align:center">
+        <div id="att-month" style="font-weight:800;font-size:20px;font-family:'Amiri',serif;color:var(--text)"></div>
+        <div id="att-year" style="color:var(--sage2);font-size:13px;font-weight:700"></div>
+      </div>
+      <button class="btn-nav" onclick="nextMonth()">›</button>
+    </div>
+    <div class="hrow" style="gap:6px;padding-bottom:4px">
+      <button class="btn-tab active" id="tab-monthly" onclick="switchTab('monthly')">📅 Bulanan</button>
+      <button class="btn-tab" id="tab-weekly" onclick="switchTab('weekly')">📆 Pekanan</button>
+      <button class="btn-tab" id="tab-recap" onclick="switchTab('recap')">📊 Rekap</button>
+    </div>
+  </div>
+  <div class="body">
+    <div id="view-monthly"></div>
+    <div id="view-weekly" style="display:none"></div>
+    <div id="view-recap" style="display:none"></div>
+  </div>
+  <div class="navbar"><div class="navbar-inner">
+    <button class="nav-btn active" id="unav-att" onclick="userNav('att')"><span>📅</span>Absensi</button>
+    <button class="nav-btn" id="unav-profile" onclick="userNav('profile')"><span>👤</span>Profil</button>
+  </div></div>
+</div>
+
+<!-- ══════════════════ USER: PROFIL ══════════════════ -->
+<div id="screen-user-profile" class="screen">
+  <div class="header">
+    <div class="hinner">
+      <div class="logo-gem">🕌</div>
+      <div style="flex:1"><div id="up-name" style="font-weight:800;font-size:16px"></div><div id="up-role" style="font-size:11px;color:var(--sage2);font-weight:600"></div></div>
+      <button class="btn-ghost" onclick="doLogout()">Keluar</button>
+    </div>
+  </div>
+  <div class="body">
+    <div class="card card-sage" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="avatar" style="width:54px;height:54px;font-size:22px;border-radius:16px" id="up-avatar"></div>
+        <div>
+          <div style="font-weight:800;font-size:17px" id="up-name2"></div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">@<span id="up-username" style="color:var(--sage2);font-weight:700"></span></div>
+          <div id="up-badge" style="margin-top:6px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-weight:800;font-size:15px;color:var(--amber2);margin-bottom:16px">🔑 Ganti Password</div>
+      <div class="input-wrap"><label>Password Lama</label><input id="up-old" class="input" type="password" placeholder="Password lama..."/><button class="eye" onclick="togglePw('up-old',this)">👁️</button></div>
+      <div class="input-wrap"><label>Password Baru</label><input id="up-new" class="input" type="password" placeholder="Password baru..."/><button class="eye" onclick="togglePw('up-new',this)">👁️</button></div>
+      <div class="input-wrap"><label>Konfirmasi Password Baru</label><input id="up-conf" class="input" type="password" placeholder="Ulangi password baru..."/><button class="eye" onclick="togglePw('up-conf',this)">👁️</button></div>
+      <button class="btn btn-amber" style="width:100%;margin-top:4px" onclick="changeUserPw()">💾 Simpan Password</button>
+    </div>
+  </div>
+  <div class="navbar"><div class="navbar-inner">
+    <button class="nav-btn" id="unav-att2" onclick="userNav('att')"><span>📅</span>Absensi</button>
+    <button class="nav-btn active" id="unav-profile2" onclick="userNav('profile')"><span>👤</span>Profil</button>
+  </div></div>
+</div>
+
+<!-- ══════════════════ MODALS ══════════════════ -->
+<div id="modal-user" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal('modal-user')">
+  <div class="modal">
+    <h3 id="modal-user-title">➕ Tambah Pengguna</h3>
+    <input type="hidden" id="modal-uid"/>
+    <div class="input-wrap"><label>Nama Lengkap</label><input id="mu-name" class="input" placeholder="Nama lengkap..."/></div>
+    <div class="input-wrap"><label>Username</label><input id="mu-username" class="input" placeholder="Username untuk login..."/></div>
+    <div class="input-wrap" id="mu-pw-wrap">
+      <label>Password</label>
+      <input id="mu-pw" class="input" type="password" placeholder="Password..."/>
+      <button class="eye" onclick="togglePw('mu-pw',this)">👁️</button>
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.3px">Jabatan / Role</label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px" id="mu-roles"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-sage" style="flex:1" onclick="saveUserModal()">✓ Simpan</button>
+      <button class="btn btn-gray" style="flex:1" onclick="closeModal('modal-user')">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Status / Cuti -->
+<div id="modal-status" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal('modal-status')">
+  <div class="modal">
+    <h3>🏖️ Status Kehadiran</h3>
+    <input type="hidden" id="ms-uid"/>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:16px;font-weight:600">Pengguna: <span id="ms-name" style="color:var(--text);font-weight:800"></span></div>
+    <div style="margin-bottom:16px">
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.3px">Status</label>
+      <div style="display:flex;gap:8px">
+        <button id="ms-status-active" onclick="window.__setMsStatus('aktif')" style="flex:1;padding:10px;border-radius:10px;border:2px solid var(--sage);background:var(--sage3);color:var(--sage2);font-weight:800;font-size:13px;cursor:pointer;transition:all .2s">✅ Aktif</button>
+        <button id="ms-status-cuti" onclick="window.__setMsStatus('cuti')" style="flex:1;padding:10px;border-radius:10px;border:2px solid var(--border);background:var(--bg2);color:var(--muted);font-weight:800;font-size:13px;cursor:pointer;transition:all .2s">🏖️ Cuti</button>
+      </div>
+    </div>
+    <div id="ms-cuti-wrap" style="display:none">
+      <div class="input-wrap">
+        <label>Alasan Cuti</label>
+        <input id="ms-cuti-reason" class="input" placeholder="Tuliskan alasan cuti..."/>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <div class="input-wrap" style="flex:1;margin-bottom:0">
+          <label>Tanggal Mulai</label>
+          <input id="ms-cuti-start" class="input" type="date"/>
+        </div>
+        <div class="input-wrap" style="flex:1;margin-bottom:0">
+          <label>Tanggal Selesai</label>
+          <input id="ms-cuti-end" class="input" type="date"/>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-sage" style="flex:1" onclick="saveStatusModal()">✓ Simpan</button>
+      <button class="btn btn-gray" style="flex:1" onclick="closeModal('modal-status')">Batal</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-reset-pw" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal('modal-reset-pw')">
+  <div class="modal">
+    <h3>🔑 Reset Password</h3>
+    <input type="hidden" id="rp-uid"/>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:14px;font-weight:600">Reset password untuk: <span id="rp-name" style="color:var(--text);font-weight:800"></span></div>
+    <div class="input-wrap"><label>Password Baru</label><input id="rp-new" class="input" type="password" placeholder="Password baru..."/><button class="eye" onclick="togglePw('rp-new',this)">👁️</button></div>
+    <div class="input-wrap"><label>Konfirmasi Password Baru</label><input id="rp-conf" class="input" type="password" placeholder="Ulangi password baru..."/><button class="eye" onclick="togglePw('rp-conf',this)">👁️</button></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-amber" style="flex:1" onclick="doResetPw()">🔑 Reset</button>
+      <button class="btn btn-gray" style="flex:1" onclick="closeModal('modal-reset-pw')">Batal</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+// ── FIREBASE ──
+const firebaseConfig = {
+  apiKey: "AIzaSyDkbdlleECoXbZbxGt5qONCBb6Ip5ZQv-U",
+  authDomain: "daftar-hadir-guru-ae9bd.firebaseapp.com",
+  projectId: "daftar-hadir-guru-ae9bd",
+  storageBucket: "daftar-hadir-guru-ae9bd.firebasestorage.app",
+  messagingSenderId: "851866323538",
+  appId: "1:851866323538:web:8d2dd2ae81302aec756d8b",
+  measurementId: "G-9WW69WLL32"
+};
+const fapp = initializeApp(firebaseConfig);
+const fs = getFirestore(fapp);
+
+// ── CONSTANTS ──
+const SESSIONS=[
+  {key:"H1",label:"H1",desc:"Halaqah Subuh",color:"#e8956d",icon:"🌅"},
+  {key:"H2",label:"H2",desc:"Halaqah Dhuha",color:"#e8a44a",icon:"☀️"},
+  {key:"H3",label:"H3",desc:"Halaqah Dzuhur",color:"#c4a46b",icon:"🌤️"},
+  {key:"J1",label:"J1",desc:"Jam Pertama",color:"#6ba8b8",icon:"📚"},
+  {key:"J2",label:"J2",desc:"Jam Kedua",color:"#7b8fc4",icon:"📖"},
+  {key:"J3",label:"J3",desc:"Jam Ketiga",color:"#9b8fc4",icon:"✏️"},
+  {key:"J4",label:"J4",desc:"Jam Keempat",color:"#b88fc4",icon:"🖊️"},
+  {key:"S1",label:"S1",desc:"Halaqah Bahasa Arab Sore",color:"#7fb3a0",icon:"🌙"},
+  {key:"S2",label:"S2",desc:"Halaqah Malam",color:"#6ba8b8",icon:"⭐"},
+];
+const ROLES=[
+  "Pengajar","Staf","Operator","Admin Halaqah",
+  "Kepala Madrasah","Bendahara",
+  "Wakil Kepala Sekolah Kesiswaan",
+  "Wakil Kepala Sekolah Hubungan Masyarakat",
+  "Wakil Kepala Sekolah Sarana dan Prasarana",
+  "Wakil Kepala Sekolah Kurikulum"
+];
+const ROLE_COLOR_MAP={
+  "Pengajar":"#5a9b86",
+  "Staf":"#4d8fa0",
+  "Operator":"#6b8fc4",
+  "Admin Halaqah":"#7b6ea8",
+  "Kepala Madrasah":"#a86870",
+  "Bendahara":"#a8874d",
+  "Wakil Kepala Sekolah Kesiswaan":"#7a9b6e",
+  "Wakil Kepala Sekolah Hubungan Masyarakat":"#9b7a6e",
+  "Wakil Kepala Sekolah Sarana dan Prasarana":"#6e8a9b",
+  "Wakil Kepala Sekolah Kurikulum":"#9b6e8a"
+};
+const MONTHS=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+const DS=["Ahd","Sen","Sel","Rab","Kam","Jum","Sab"];
+const DF=["Ahad","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+const TODAY=new Date();
+const ADMIN_DEFAULT_PW="Madras0h!";
+// ── CUSTOM USER ORDER ──
+// Urutan resmi sesuai daftar institusi
+const CUSTOM_ORDER=[
+  ["HARMIN"],                                        // 1
+  ["ADNAN ABDUL RASYID"],                            // 2
+  ["RUDDY HERMANTO"],                                // 3
+  ["VIRGIAWAN ASMIR","VIRGIAWAN"],                   // 4
+  ["TASNIM"],                                        // 5
+  ["RHENDY FAHRULLAH"],                              // 6
+  ["IMAM HIDAYAT"],                                  // 7
+  ["METRIC CISARUANDA"],                             // 8
+  ["USMAN"],                                         // 9
+  ["MUHAMMAD IHSAN FAUZY"],                          // 10
+  ["MUHAMMAD IQBAL"],                                // 11
+  ["MUHAMMAD SYARIF"],                               // 12
+  ["MUHAMMAD INDERA ALFHANDY","INDERA ALFHANDY"],    // 13
+  ["ASMAN SUGANDHA PRATAMA","ASMAN SUGANDHA"],       // 14
+  ["NASRI JAYA"],                                    // 15
+  ["FAJRIN NUR MUHAMMAD TARIKA","FAJRIN NM","FAJRIN"],// 16
+  ["ASMIN SUGANDHI PRATAMA","ASMIN SUGANDHI"],       // 17
+  ["IRFAN HARJO SANTOSO","IRFAN HARJO"],             // 18
+  ["MUHAMMAD IHSAN"],                                // 19 - hati2 urutan setelah IHSAN FAUZY
+  ["MUHAMMAD SYUKUR"],                               // 20
+  ["MUHAMMAD KHAEZAR NAZARULLY","KHAEZAR"],          // 21
+];
+function getOrderIndex(name){
+  const upper=name.toUpperCase().trim();
+  for(let i=0;i<CUSTOM_ORDER.length;i++){
+    for(const kw of CUSTOM_ORDER[i]){
+      if(upper.includes(kw)||kw.split(' ').every(w=>w.length>2&&upper.includes(w)))return i;
+    }
+  }
+  return 9999;
+}
+function sortUsers(){
+  users.sort((a,b)=>{
+    const ia=getOrderIndex(a.name),ib=getOrderIndex(b.name);
+    if(ia!==ib)return ia-ib;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+
+// ── STATE ──
+let users=[], localDb={};
+let currentUser=null;
+let loginRole='user';
+window.muRoles=["Pengajar"];
+let cYear=TODAY.getFullYear(), cMonth=TODAY.getMonth();
+let rekapYear=TODAY.getFullYear(), rekapMonth=TODAY.getMonth();
+let cView='monthly', cView2='monthly';
+let selWeek=1, editDay=null, editDayW=null;
+let viewingUser=null;
+
+// ── UI HELPERS ──
+function showLoading(msg="Memuat..."){
+  document.getElementById('loading').style.display='flex';
+  document.getElementById('loading-msg').textContent=msg;
+}
+function hideLoading(){document.getElementById('loading').style.display='none'}
+function showToast(msg,ok=true){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.style.background=ok?'var(--sage2)':'var(--rose2)';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function openModal(id){document.getElementById(id).style.display='flex'}
+function closeModal(id){document.getElementById(id).style.display='none'}
+window.closeModal=closeModal;
+
+function togglePw(id,btn){
+  const el=document.getElementById(id);
+  el.type=el.type==='password'?'text':'password';
+  btn.textContent=el.type==='password'?'👁️':'🙈';
+}
+window.togglePw=togglePw;
+
+function getRoleColor(role){
+  return ROLE_COLOR_MAP[role]||'#4d8fa0';
+}
+// roles can be array or legacy string
+function getRoles(u){
+  if(Array.isArray(u.roles))return u.roles;
+  if(u.role)return[u.role];
+  return[];
+}
+function rolesDisplay(u){
+  return getRoles(u).map(r=>{
+    const c=getRoleColor(r);
+    return`<span class="badge" style="background:${c}18;color:${c};border:1px solid ${c}44;margin:2px 2px 0 0">${r}</span>`;
+  }).join('');
+}
+function rolesText(u){return getRoles(u).join(', ');}
+
+// ── HASH ──
+async function hashPw(pw){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// ── FIRESTORE ──
+async function loadUsers(){
+  const snap=await getDocs(collection(fs,"users"));
+  users=[];
+  snap.forEach(d=>users.push({id:d.id,...d.data()}));
+  sortUsers();
+}
+async function saveUserDoc(user){const{id,...data}=user;await setDoc(doc(fs,"users",id),data);}
+async function deleteUserDoc(id){
+  await deleteDoc(doc(fs,"users",id));
+  const snap=await getDocs(collection(fs,"att_"+id));
+  await Promise.all(snap.docs.map(d=>deleteDoc(doc(fs,"att_"+id,d.id))));
+}
+async function loadAtt(uid){
+  if(localDb[uid])return;
+  const snap=await getDocs(collection(fs,"att_"+uid));
+  localDb[uid]={};
+  snap.forEach(d=>{localDb[uid][d.id]=d.data()});
+}
+async function saveAtt(uid,dateKey,data){await setDoc(doc(fs,"att_"+uid,dateKey),data);}
+async function getAdminDoc(){const d=await getDoc(doc(fs,"config","admin"));return d.exists()?d.data():null;}
+async function saveAdminDoc(data){await setDoc(doc(fs,"config","admin"),data);}
+
+// ── CALC ──
+const dim=(y,m)=>new Date(y,m+1,0).getDate();
+const fd=(y,m)=>new Date(y,m,1).getDay();
+const wom=(d,f)=>Math.ceil((d+f)/7);
+const wim=(y,m)=>Math.ceil((dim(y,m)+fd(y,m))/7);
+const dk=(y,m,d)=>`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+const emptyDay=()=>SESSIONS.reduce((a,s)=>({...a,[s.key]:false}),{});
+const cntDay=dd=>SESSIONS.filter(s=>dd[s.key]).length;
+const scDay=dd=>cntDay(dd)*2;
+function gdd(uid,y,m,d){return(localDb[uid]&&localDb[uid][dk(y,m,d)])||emptyDay()}
+function wRec(uid,y,m,wk){
+  const t=dim(y,m),f=fd(y,m),days=[];
+  for(let d=1;d<=t;d++)if(wom(d,f)===wk)days.push(d);
+  const tots=SESSIONS.reduce((a,s)=>({...a,[s.key]:0}),{});
+  let ts=0;days.forEach(d=>{const dd=gdd(uid,y,m,d);SESSIONS.forEach(s=>{if(dd[s.key])tots[s.key]++;});ts+=scDay(dd);});
+  return{totals:tots,totalScore:ts,days};
+}
+function mRec(uid,y,m){
+  const t=dim(y,m),tots=SESSIONS.reduce((a,s)=>({...a,[s.key]:0}),{});
+  let ts=0;for(let d=1;d<=t;d++){const dd=gdd(uid,y,m,d);SESSIONS.forEach(s=>{if(dd[s.key])tots[s.key]++;});ts+=scDay(dd);}
+  return{totals:tots,totalScore:ts};
+}
+// Jumlah hadir (hari dengan minimal 1 sesi) per pekan
+function weekAttCount(uid,y,m,wk){
+  const t=dim(y,m),f=fd(y,m);let c=0;
+  for(let d=1;d<=t;d++)if(wom(d,f)===wk&&cntDay(gdd(uid,y,m,d))>0)c++;
+  return c;
+}
+function monthAttCount(uid,y,m){
+  const t=dim(y,m);let c=0;
+  for(let d=1;d<=t;d++)if(cntDay(gdd(uid,y,m,d))>0)c++;
+  return c;
+}
+function yRec(uid,y){return MONTHS.map((_,m)=>({month:m,...mRec(uid,y,m)}))}
+
+// ── LOGIN ──
+function setLoginRole(r){
+  loginRole=r;
+  document.getElementById('rtab-user').classList.toggle('active',r==='user');
+  document.getElementById('rtab-admin').classList.toggle('active',r==='admin');
+  document.getElementById('login-err').style.display='none';
+}
+window.setLoginRole=setLoginRole;
+
+async function doLogin(){
+  const username=document.getElementById('l-user').value.trim();
+  const password=document.getElementById('l-pass').value;
+  const errEl=document.getElementById('login-err');
+  errEl.style.display='none';
+  if(!username||!password){errEl.textContent='Username dan password wajib diisi.';errEl.style.display='block';return;}
+  showLoading("Memeriksa akun...");
+  try{
+    if(loginRole==='admin'){
+      const adminDoc=await getAdminDoc();
+      const pwHash=await hashPw(password);
+      let validPw=adminDoc?adminDoc.pwHash===pwHash:password===ADMIN_DEFAULT_PW;
+      if(username!=='admin'||!validPw){hideLoading();errEl.textContent='Username atau password admin salah.';errEl.style.display='block';return;}
+      if(!adminDoc)await saveAdminDoc({pwHash:await hashPw(ADMIN_DEFAULT_PW)});
+      currentUser={id:'admin',name:'Administrator',username:'admin',role:'Admin',isAdmin:true};
+      hideLoading();
+      showScreen('admin-users');
+      renderAdminUsers();
+    } else {
+      const pwHash=await hashPw(password);
+      const found=users.find(u=>u.username===username&&u.pwHash===pwHash);
+      if(!found){hideLoading();errEl.textContent='Username atau password salah.';errEl.style.display='block';return;}
+      currentUser={...found,isAdmin:false};
+      showLoading("Memuat data absensi...");
+      await loadAtt(currentUser.id);
+      hideLoading();
+      cYear=TODAY.getFullYear();cMonth=TODAY.getMonth();cView='monthly';editDay=null;editDayW=null;selWeek=1;
+      document.getElementById('u-name').textContent=currentUser.name;
+      document.getElementById('u-role').textContent=rolesText(currentUser);
+      document.getElementById('att-month').textContent=MONTHS[cMonth];
+      document.getElementById('att-year').textContent=cYear;
+      showScreen('user-att');
+      switchTab('monthly');
+    }
+  }catch(e){hideLoading();errEl.textContent='Terjadi kesalahan. Coba lagi.';errEl.style.display='block';}
+}
+window.doLogin=doLogin;
+
+function doLogout(){
+  currentUser=null;viewingUser=null;
+  document.getElementById('l-user').value='';
+  document.getElementById('l-pass').value='';
+  document.getElementById('login-err').style.display='none';
+  showScreen('login');
+}
+window.doLogout=doLogout;
+
+// ── ADMIN NAV ──
+function adminNav(tab){
+  const tabs=['users','rekap','profile'];
+  tabs.forEach(t=>{
+    [1,2,3].forEach(n=>{const el=document.getElementById(`anav-${t}${n===1?'':n}`);if(el)el.classList.toggle('active',t===tab);});
+    const el=document.getElementById(`anav-${t}`);if(el)el.classList.toggle('active',t===tab);
+  });
+  if(tab==='users'){showScreen('admin-users');renderAdminUsers();}
+  else if(tab==='rekap'){
+    showScreen('admin-rekap');
+    rekapYear=TODAY.getFullYear();rekapMonth=TODAY.getMonth();
+    renderRekapPage();
+  }
+  else if(tab==='profile'){showScreen('admin-profile');}
+}
+window.adminNav=adminNav;
+
+// ── USER NAV ──
+function userNav(tab){
+  ['att','profile'].forEach(t=>{
+    ['unav-'+t,'unav-'+t+'2'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.toggle('active',t===tab);});
+  });
+  if(tab==='att'){
+    showScreen('user-att');
+    document.getElementById('u-name').textContent=currentUser.name;
+    document.getElementById('u-role').textContent=rolesText(currentUser);
+    renderCurView();
+  } else {
+    showScreen('user-profile');
+    document.getElementById('up-name').textContent=currentUser.name;
+    document.getElementById('up-role').textContent=rolesText(currentUser);
+    document.getElementById('up-name2').textContent=currentUser.name;
+    document.getElementById('up-username').textContent=currentUser.username;
+    document.getElementById('up-avatar').textContent=currentUser.name[0].toUpperCase();
+    document.getElementById('up-badge').innerHTML=rolesDisplay(currentUser);
+  }
+}
+window.userNav=userNav;
+
+// ── ADMIN: RENDER USER LIST ──
+function renderAdminUsers(){
+  const ul=document.getElementById('admin-user-list');
+  if(!users.length){
+    ul.innerHTML=`<div class="empty"><div style="font-size:52px;margin-bottom:12px">👤</div><div style="font-weight:800;font-size:16px">Belum ada pengguna</div><div style="font-size:13px;margin-top:5px">Tambahkan pengguna baru</div></div>`;return;
+  }
+  ul.innerHTML=users.map(u=>{
+    const roles=getRoles(u);const rc=getRoleColor(roles[0]||'');
+    return`<div class="ucard fade-in">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="avatar" style="background:linear-gradient(135deg,${rc}aa,${rc})">${u.name[0].toUpperCase()}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:800;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.name}${u.status==='cuti'?'<span style="font-size:10px;background:#fef3c7;color:#d97706;border:1px solid #fde68a;border-radius:8px;padding:2px 6px;font-weight:700;margin-left:6px">🏖️ Cuti</span>':''}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;font-weight:600">@${u.username}</div>
+          <div style="margin-top:5px;display:flex;flex-wrap:wrap">${rolesDisplay(u)}</div>
+          ${u.status==='cuti'&&u.cutiReason?`<div style="font-size:11px;color:#d97706;margin-top:3px;font-weight:600">📝 ${u.cutiReason}</div>`:''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+          <button class="btn-icon" title="Lihat Absensi" onclick="window.__viewAtt('${u.id}')">📅</button>
+          <button class="btn-icon" title="Edit" onclick="window.__editUser('${u.id}')">✏️</button>
+          <button class="btn-icon" title="Status Kehadiran" onclick="window.__editStatus('${u.id}')">${u.status==='cuti'?'🏖️':'✅'}</button>
+          <button class="btn-icon" title="Reset Password" onclick="window.__resetPw('${u.id}')">🔑</button>
+          <button class="btn-icon" title="Hapus" onclick="window.__delUser('${u.id}')">🗑️</button>
+        </div>
+      </div></div>`;
+  }).join('');
+}
+
+// ── ADMIN: REKAPITULASI BULANAN ──
+function rekapPrevMonth(){
+  if(rekapMonth===0){rekapMonth=11;rekapYear--;}else rekapMonth--;
+  renderRekapPage();
+}
+function rekapNextMonth(){
+  if(rekapMonth===11){rekapMonth=0;rekapYear++;}else rekapMonth++;
+  renderRekapPage();
+}
+window.rekapPrevMonth=rekapPrevMonth;
+window.rekapNextMonth=rekapNextMonth;
+
+async function renderRekapPage(){
+  document.getElementById('rekap-month').textContent=MONTHS[rekapMonth];
+  document.getElementById('rekap-year').textContent=rekapYear;
+  // Load attendance untuk semua user yang belum di-cache
+  showLoading("Memuat data rekapitulasi...");
+  await Promise.all(users.map(u=>loadAtt(u.id)));
+  hideLoading();
+  renderRekapTable();
+}
+
+function renderRekapTable(){
+  const y=rekapYear,m=rekapMonth,tw=wim(y,m);
+  if(!users.length){
+    document.getElementById('rekap-table-wrap').innerHTML=`<div class="empty"><div style="font-size:42px;margin-bottom:10px">📋</div><div style="font-weight:700">Belum ada pengguna</div></div>`;
+    return;
+  }
+  // Build header
+  let thWeeks='';
+  for(let w=1;w<=tw;w++)thWeeks+=`<th>Pekan ${w}</th>`;
+  // Build rows
+  let rows='';
+  let totalPerWeek=Array(tw).fill(0);
+  let grandTotalHari=0;
+  let grandTotalPoin=0;
+  let grandTotalPoinPerWeek=Array(tw).fill(0);
+  users.forEach((u,idx)=>{
+    const isCuti=u.status==='cuti';
+    let tdWeeks='';
+    let rowTotalHari=monthAttCount(u.id,y,m);
+    let rowTotalPoin=mRec(u.id,y,m).totalScore;
+    for(let w=1;w<=tw;w++){
+      const cnt=weekAttCount(u.id,y,m,w);
+      const pts=wRec(u.id,y,m,w).totalScore;
+      totalPerWeek[w-1]+=cnt;
+      grandTotalPoinPerWeek[w-1]+=pts;
+      tdWeeks+=`<td>${cnt>0?`<span style="font-weight:800;color:var(--sage2)">${cnt}</span>`:'<span style="color:var(--muted)">—</span>'}</td>`;
+    }
+    grandTotalHari+=rowTotalHari;
+    grandTotalPoin+=rowTotalPoin;
+    const cutiTag=isCuti?`<span style="font-size:10px;background:#fef3c7;color:#d97706;border:1px solid #fde68a;border-radius:8px;padding:2px 7px;font-weight:700;margin-left:6px">🏖️ Cuti</span>`:'';
+    rows+=`<tr style="${isCuti?'opacity:0.65':''}">
+      <td style="font-weight:700;color:var(--muted)">${idx+1}</td>
+      <td><div style="font-weight:800;display:flex;align-items:center;flex-wrap:wrap;gap:4px">${u.name}${cutiTag}</div><div style="margin-top:3px;display:flex;flex-wrap:wrap">${rolesDisplay(u)}</div></td>
+      ${tdWeeks}
+      <td><span style="font-weight:900;font-size:16px;color:var(--amber2)">${rowTotalPoin}</span><span style="font-size:11px;color:var(--muted)"> poin</span></td>
+      <td><span style="font-weight:900;font-size:16px;color:var(--sage2)">${rowTotalHari}</span><span style="font-size:11px;color:var(--muted)"> hari</span></td>
+    </tr>`;
+  });
+  // Total row
+  let tdTotalWeeks='';
+  for(let w=1;w<=tw;w++)tdTotalWeeks+=`<td style="font-weight:800;color:var(--sage2)">${totalPerWeek[w-1]}</td>`;
+  const totalRow=`<tr class="total-row">
+    <td colspan="2" style="text-align:left;font-weight:800">Total Keseluruhan</td>
+    ${tdTotalWeeks}
+    <td style="font-weight:900;font-size:16px;color:var(--amber2)">${grandTotalPoin}</td>
+    <td style="font-weight:900;font-size:16px;color:var(--sage2)">${grandTotalHari}</td>
+  </tr>`;
+  document.getElementById('rekap-table-wrap').innerHTML=`
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border);background:var(--sage3)">
+        <div style="font-weight:800;font-size:14px;color:var(--sage2)">📋 Rekapitulasi Kehadiran — ${MONTHS[m]} ${y}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px;font-weight:600">${users.length} pengguna · ${tw} pekan · ${dim(y,m)} hari</div>
+      </div>
+      <div class="recap-table-wrap">
+        <table class="recap-table">
+          <thead><tr>
+            <th style="width:40px">No</th>
+            <th style="text-align:left">Nama & Jabatan</th>
+            ${thWeeks}
+            <th style="background:linear-gradient(135deg,#c4a46b,#a8874d)">Total Poin</th>
+            <th>Total Hadir</th>
+          </tr></thead>
+          <tbody>${rows}${totalRow}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function printRekap(){
+  const y=rekapYear,m=rekapMonth,tw=wim(y,m);
+  let thWeeks='';for(let w=1;w<=tw;w++)thWeeks+=`<th>Pekan ${w}</th>`;
+  let rows='';
+  let totalPerWeek=Array(tw).fill(0);
+  let grandTotalHari=0,grandTotalPoin=0;
+  users.forEach((u,idx)=>{
+    let tdWeeks='';
+    let rowTotalHari=monthAttCount(u.id,y,m);
+    let rowTotalPoin=mRec(u.id,y,m).totalScore;
+    for(let w=1;w<=tw;w++){const cnt=weekAttCount(u.id,y,m,w);totalPerWeek[w-1]+=cnt;tdWeeks+=`<td>${cnt}</td>`;}
+    grandTotalHari+=rowTotalHari;grandTotalPoin+=rowTotalPoin;
+    const statusStr=u.status==='cuti'?` (Cuti${u.cutiReason?': '+u.cutiReason:''})` :'';
+    rows+=`<tr><td>${idx+1}</td><td>${u.name}${statusStr}</td><td>${rolesText(u)}</td>${tdWeeks}<td><b>${rowTotalPoin}</b></td><td><b>${rowTotalHari}</b></td></tr>`;
+  });
+  let tdTotalWeeks='';for(let w=1;w<=tw;w++)tdTotalWeeks+=`<td><b>${totalPerWeek[w-1]}</b></td>`;
+  const html=`<html><head><title>Rekapitulasi ${MONTHS[m]} ${y}</title>
+  <style>body{font-family:Arial,sans-serif;padding:20px;color:#2d3748}h1{color:#5a9b86;font-size:20px;margin-bottom:4px}
+  p{color:#8a97a8;font-size:13px;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th{background:#5a9b86;color:#fff;padding:8px 6px;text-align:center}
+  th:nth-child(2){text-align:left}th:nth-child(3){text-align:left}
+  th.poin{background:#a8874d}
+  td{padding:7px 6px;border-bottom:1px solid #e2e8f0;text-align:center}
+  td:nth-child(2),td:nth-child(3){text-align:left}
+  tr:nth-child(even){background:#f7f9fc}
+  .tot{background:#e8f4f0!important;font-weight:bold}
+  </style></head><body>
+  <h1>🕌 Rekapitulasi Daftar Hadir Halaqah</h1>
+  <p>${MONTHS[m]} ${y} · ${users.length} pengguna · ${tw} pekan</p>
+  <table><thead><tr><th>No</th><th>Nama</th><th>Jabatan</th>${thWeeks}<th class="poin">Total Poin</th><th>Total Hadir</th></tr></thead>
+  <tbody>${rows}<tr class="tot"><td colspan="3">Total Keseluruhan</td>${tdTotalWeeks}<td><b>${grandTotalPoin}</b></td><td><b>${grandTotalHari}</b></td></tr></tbody>
+  </table></body></html>`;
+  const w=window.open("","_blank");w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),400);
+}
+window.printRekap=printRekap;
+
+function exportRekapExcel(){
+  const y=rekapYear,m=rekapMonth,tw=wim(y,m);
+  const headers=["No","Nama","Jabatan"];
+  for(let w=1;w<=tw;w++)headers.push(`Pekan ${w}`);
+  headers.push("Total Poin","Total Hadir","Status");
+  const rows=[headers];
+  const totalPerWeek=Array(tw).fill(0);
+  let grandTotalHari=0,grandTotalPoin=0;
+  users.forEach((u,idx)=>{
+    const row=[idx+1,u.name,rolesText(u)];
+    let rowTotalHari=monthAttCount(u.id,y,m);
+    let rowTotalPoin=mRec(u.id,y,m).totalScore;
+    for(let w=1;w<=tw;w++){const cnt=weekAttCount(u.id,y,m,w);totalPerWeek[w-1]+=cnt;row.push(cnt);}
+    row.push(rowTotalPoin);
+    row.push(rowTotalHari);
+    row.push(u.status==='cuti'?`Cuti${u.cutiReason?' - '+u.cutiReason:''}` :'Aktif');
+    grandTotalHari+=rowTotalHari;grandTotalPoin+=rowTotalPoin;
+    rows.push(row);
+  });
+  const totalRow=["","Total Keseluruhan",""];
+  for(let w=1;w<=tw;w++)totalRow.push(totalPerWeek[w-1]);
+  totalRow.push(grandTotalPoin,grandTotalHari,"");
+  rows.push(totalRow);
+  // Use SheetJS if available, else fallback to CSV
+  if(typeof XLSX!=='undefined'){
+    const ws=XLSX.utils.aoa_to_sheet(rows);
+    // Column widths
+    ws['!cols']=[{wch:5},{wch:30},{wch:28},...Array(tw).fill({wch:10}),{wch:13},{wch:13},{wch:20}];
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,`${MONTHS[m]} ${y}`);
+    XLSX.writeFile(wb,`Rekapitulasi_${MONTHS[m]}_${y}.xlsx`);
+    showToast('✅ File Excel berhasil diunduh');
+  } else {
+    // Fallback: export sebagai CSV
+    const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`Rekapitulasi_${MONTHS[m]}_${y}.csv`;
+    a.click();
+    showToast('✅ File CSV berhasil diunduh');
+  }
+}
+window.exportRekapExcel=exportRekapExcel;
+
+// ── ADMIN: ADD/EDIT MODAL ──
+function openAddUserModal(){
+  window.muRoles=["Pengajar"];
+  document.getElementById('modal-uid').value='';
+  document.getElementById('modal-user-title').textContent='➕ Tambah Pengguna';
+  document.getElementById('mu-name').value='';
+  document.getElementById('mu-username').value='';
+  document.getElementById('mu-pw').value='';
+  document.getElementById('mu-pw-wrap').style.display='block';
+  renderMuRoles();
+  openModal('modal-user');
+}
+window.openAddUserModal=openAddUserModal;
+
+function renderMuRoles(){
+  const sel=window.muRoles||[];
+  document.getElementById('mu-roles').innerHTML=ROLES.map(r=>{
+    const active=sel.includes(r);
+    const rc=getRoleColor(r);
+    return`<button onclick="window.__toggleMuRole('${r}')" style="padding:6px 12px;border-radius:10px;border:2px solid ${active?rc+'99':'var(--border)'};background:${active?rc+'22':'var(--bg2)'};color:${active?rc:'var(--muted)'};font-weight:700;font-size:12px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:5px">${active?'✓ ':''}<span>${r}</span></button>`;
+  }).join('');
+}
+window.renderMuRoles=renderMuRoles;
+window.__toggleMuRole=(r)=>{
+  if(!window.muRoles)window.muRoles=[];
+  const idx=window.muRoles.indexOf(r);
+  if(idx>=0)window.muRoles.splice(idx,1);
+  else window.muRoles.push(r);
+  renderMuRoles();
+};
+
+
+async function saveUserModal(){
+  const uid=document.getElementById('modal-uid').value;
+  const name=document.getElementById('mu-name').value.trim();
+  const username=document.getElementById('mu-username').value.trim().toLowerCase();
+  const pw=document.getElementById('mu-pw').value;
+  const isEdit=!!uid;
+  if(!name||!username){showToast('Nama dan username wajib diisi',false);return;}
+  if(!window.muRoles||window.muRoles.length===0){showToast('Pilih minimal satu jabatan',false);return;}
+  if(!isEdit&&!pw){showToast('Password wajib diisi',false);return;}
+  const dup=users.find(u=>u.username===username&&u.id!==uid);
+  if(dup){showToast('Username sudah digunakan',false);return;}
+  showLoading(isEdit?'Menyimpan perubahan...':'Menambah pengguna...');
+  try{
+    if(isEdit){
+      const user=users.find(u=>u.id===uid);
+      user.name=name;user.username=username;user.roles=window.muRoles||[];delete user.role;
+      if(pw)user.pwHash=await hashPw(pw);
+      await saveUserDoc(user);
+      showToast('✅ Data pengguna diperbarui');
+    } else {
+      const id=Date.now().toString();
+      const pwHash=await hashPw(pw);
+      const user={id,name,username,roles:window.muRoles||[],pwHash,status:'aktif'};
+      await saveUserDoc(user);
+      users.push(user);
+      sortUsers();
+      showToast('✅ Pengguna berhasil ditambahkan');
+    }
+    closeModal('modal-user');
+    renderAdminUsers();
+  }catch(e){showToast('❌ Gagal menyimpan',false);}
+  hideLoading();
+}
+window.saveUserModal=saveUserModal;
+
+window.__editUser=(id)=>{
+  const u=users.find(x=>x.id===id);if(!u)return;
+  window.muRoles=Array.isArray(u.roles)?[...u.roles]:(u.role?[u.role]:[]);
+  document.getElementById('modal-uid').value=id;
+  document.getElementById('modal-user-title').textContent='✏️ Edit Pengguna';
+  document.getElementById('mu-name').value=u.name;
+  document.getElementById('mu-username').value=u.username;
+  document.getElementById('mu-pw').value='';
+  document.getElementById('mu-pw-wrap').style.display='block';
+  renderMuRoles();
+  openModal('modal-user');
+};
+window.__delUser=async(id)=>{
+  const u=users.find(x=>x.id===id);
+  if(!confirm(`Hapus "${u?.name}"? Data absensinya ikut terhapus.`))return;
+  showLoading('Menghapus...');
+  try{
+    await deleteUserDoc(id);
+    users=users.filter(x=>x.id!==id);
+    delete localDb[id];
+    showToast('🗑️ Pengguna dihapus');
+    renderAdminUsers();
+  }catch(e){showToast('❌ Gagal menghapus',false);}
+  hideLoading();
+};
+window.__resetPw=(id)=>{
+  const u=users.find(x=>x.id===id);if(!u)return;
+  document.getElementById('rp-uid').value=id;
+  document.getElementById('rp-name').textContent=u.name;
+  document.getElementById('rp-new').value='';
+  document.getElementById('rp-conf').value='';
+  openModal('modal-reset-pw');
+};
+// ── STATUS MODAL ──
+window.__editStatus=(id)=>{
+  const u=users.find(x=>x.id===id);if(!u)return;
+  document.getElementById('ms-uid').value=id;
+  document.getElementById('ms-name').textContent=u.name;
+  document.getElementById('ms-cuti-reason').value=u.cutiReason||'';
+  document.getElementById('ms-cuti-start').value=u.cutiStart||'';
+  document.getElementById('ms-cuti-end').value=u.cutiEnd||'';
+  window.__setMsStatus(u.status||'aktif');
+  openModal('modal-status');
+};
+window.__setMsStatus=(s)=>{
+  const ca=document.getElementById('ms-status-active');
+  const cc=document.getElementById('ms-status-cuti');
+  const cw=document.getElementById('ms-cuti-wrap');
+  window.msStatus=s;
+  if(s==='aktif'){
+    ca.style.cssText='flex:1;padding:10px;border-radius:10px;border:2px solid var(--sage);background:var(--sage3);color:var(--sage2);font-weight:800;font-size:13px;cursor:pointer;transition:all .2s';
+    cc.style.cssText='flex:1;padding:10px;border-radius:10px;border:2px solid var(--border);background:var(--bg2);color:var(--muted);font-weight:800;font-size:13px;cursor:pointer;transition:all .2s';
+    cw.style.display='none';
+  } else {
+    cc.style.cssText='flex:1;padding:10px;border-radius:10px;border:2px solid #f59e0b;background:#fef3c7;color:#d97706;font-weight:800;font-size:13px;cursor:pointer;transition:all .2s';
+    ca.style.cssText='flex:1;padding:10px;border-radius:10px;border:2px solid var(--border);background:var(--bg2);color:var(--muted);font-weight:800;font-size:13px;cursor:pointer;transition:all .2s';
+    cw.style.display='block';
+  }
+};
+window.saveStatusModal=async()=>{
+  const id=document.getElementById('ms-uid').value;
+  const status=window.msStatus||'aktif';
+  const reason=document.getElementById('ms-cuti-reason').value||'';
+  const start=document.getElementById('ms-cuti-start').value||'';
+  const end=document.getElementById('ms-cuti-end').value||'';
+  showLoading('Menyimpan status...');
+  try{
+    const u=users.find(x=>x.id===id);if(!u){hideLoading();return;}
+    u.status=status;u.cutiReason=reason;u.cutiStart=start;u.cutiEnd=end;
+    await saveUserDoc(u);
+    closeModal('modal-status');
+    renderAdminUsers();
+    showToast(status==='aktif'?'✅ Status diubah ke Aktif':'🏖️ Status Cuti disimpan');
+  }catch(e){showToast('❌ Gagal menyimpan',false);}
+  hideLoading();
+};
+
+window.doResetPw=async()=>{
+  const id=document.getElementById('rp-uid').value;
+  const np=document.getElementById('rp-new').value;
+  const cp=document.getElementById('rp-conf').value;
+  if(!np){showToast('Password baru wajib diisi',false);return;}
+  if(np!==cp){showToast('Konfirmasi password tidak cocok',false);return;}
+  showLoading('Mereset password...');
+  try{
+    const u=users.find(x=>x.id===id);
+    u.pwHash=await hashPw(np);
+    await saveUserDoc(u);
+    closeModal('modal-reset-pw');
+    showToast('✅ Password berhasil direset');
+  }catch(e){showToast('❌ Gagal mereset',false);}
+  hideLoading();
+};
+
+// ── ADMIN VIEW ATTENDANCE ──
+window.__viewAtt=async(id)=>{
+  const u=users.find(x=>x.id===id);if(!u)return;
+  viewingUser=u;
+  showLoading('Memuat absensi...');
+  await loadAtt(id);
+  hideLoading();
+  cYear=TODAY.getFullYear();cMonth=TODAY.getMonth();cView2='monthly';editDay=null;editDayW=null;selWeek=1;
+  document.getElementById('aa-name').textContent=u.name;
+  document.getElementById('aa-role').textContent=rolesText(u);
+  document.getElementById('att-month2').textContent=MONTHS[cMonth];
+  document.getElementById('att-year2').textContent=cYear;
+  showScreen('admin-att');
+  switchTab2('monthly');
+};
+
+// ── CHANGE PASSWORD ──
+async function changeAdminPw(){
+  const op=document.getElementById('ap-old').value;
+  const np=document.getElementById('ap-new').value;
+  const cp=document.getElementById('ap-conf').value;
+  if(!op||!np||!cp){showToast('Semua kolom wajib diisi',false);return;}
+  if(np!==cp){showToast('Konfirmasi password tidak cocok',false);return;}
+  showLoading('Menyimpan password...');
+  try{
+    const adminDoc=await getAdminDoc();
+    const opHash=await hashPw(op);
+    const valid=adminDoc?adminDoc.pwHash===opHash:op===ADMIN_DEFAULT_PW;
+    if(!valid){hideLoading();showToast('Password lama salah',false);return;}
+    await saveAdminDoc({pwHash:await hashPw(np)});
+    ['ap-old','ap-new','ap-conf'].forEach(id=>document.getElementById(id).value='');
+    showToast('✅ Password admin berhasil diubah');
+  }catch(e){showToast('❌ Gagal menyimpan',false);}
+  hideLoading();
+}
+window.changeAdminPw=changeAdminPw;
+
+async function changeUserPw(){
+  const op=document.getElementById('up-old').value;
+  const np=document.getElementById('up-new').value;
+  const cp=document.getElementById('up-conf').value;
+  if(!op||!np||!cp){showToast('Semua kolom wajib diisi',false);return;}
+  if(np!==cp){showToast('Konfirmasi password tidak cocok',false);return;}
+  showLoading('Menyimpan password...');
+  try{
+    const opHash=await hashPw(op);
+    if(currentUser.pwHash!==opHash){hideLoading();showToast('Password lama salah',false);return;}
+    currentUser.pwHash=await hashPw(np);
+    const u=users.find(x=>x.id===currentUser.id);
+    if(u)u.pwHash=currentUser.pwHash;
+    await saveUserDoc({...currentUser});
+    ['up-old','up-new','up-conf'].forEach(id=>document.getElementById(id).value='');
+    showToast('✅ Password berhasil diubah');
+  }catch(e){showToast('❌ Gagal menyimpan',false);}
+  hideLoading();
+}
+window.changeUserPw=changeUserPw;
+
+// ── RENDER HELPERS ──
+function sbHTML(score,label,color,big=false){
+  return`<div class="score-badge" style="background:linear-gradient(135deg,${color}18,${color}08);border:1.5px solid ${color}33">
+    <div style="color:${color};font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px;opacity:0.8">${label}</div>
+    <div style="font-weight:900;font-size:${big?52:36}px;color:${color};line-height:1;font-family:'Amiri',serif">${score}</div>
+    <div style="color:var(--muted);font-size:12px;margin-top:4px;font-weight:600">poin</div></div>`;
+}
+function recapGrid(totals,color){
+  return`<div class="recap-grid">${SESSIONS.map(s=>`<div class="recap-item" style="border-left:3px solid ${s.color}">
+    <div style="font-weight:800;font-size:11px;color:${s.color};margin-bottom:4px">${s.icon} ${s.label}</div>
+    <div style="font-weight:900;font-size:20px;color:var(--text)">${totals[s.key]}</div>
+    <div style="font-size:10px;color:var(--muted)">×2=<b style="color:${color}">${totals[s.key]*2}</b></div>
+  </div>`).join('')}</div>`;
+}
+
+// ── TAB SWITCH ──
+function switchTab(v){
+  cView=v;
+  ['monthly','weekly','recap'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('active',t===v);
+    document.getElementById('view-'+t).style.display=t===v?'block':'none';
+  });
+  renderCurView();
+}
+window.switchTab=switchTab;
+
+function renderCurView(){
+  if(cView==='monthly')renderMonthlyFor(currentUser.id,'view-monthly',true);
+  else if(cView==='weekly')renderWeeklyFor(currentUser.id,'view-weekly',true);
+  else renderRecapFor(currentUser.id,'view-recap',true);
+}
+
+function switchTab2(v){
+  cView2=v;
+  ['monthly','weekly','recap'].forEach(t=>{
+    const el=document.getElementById('tab-'+t+'2');if(el)el.classList.toggle('active',t===v);
+    const vel=document.getElementById('view-'+t+'2');if(vel)vel.style.display=t===v?'block':'none';
+  });
+  renderCurView2();
+}
+window.switchTab2=switchTab2;
+
+function renderCurView2(){
+  if(!viewingUser)return;
+  const uid=viewingUser.id;
+  if(cView2==='monthly')renderMonthlyFor(uid,'view-monthly2',false);
+  else if(cView2==='weekly')renderWeeklyFor(uid,'view-weekly2',false);
+  else renderRecapFor(uid,'view-recap2',false);
+}
+
+// ── MONTH NAV ──
+function prevMonth(){
+  if(cMonth===0){cMonth=11;cYear--;}else cMonth--;
+  editDay=null;editDayW=null;selWeek=1;
+  const isAdmin=currentUser?.isAdmin&&viewingUser;
+  if(isAdmin){
+    document.getElementById('att-month2').textContent=MONTHS[cMonth];
+    document.getElementById('att-year2').textContent=cYear;
+    renderCurView2();
+  } else {
+    document.getElementById('att-month').textContent=MONTHS[cMonth];
+    document.getElementById('att-year').textContent=cYear;
+    renderCurView();
+  }
+}
+function nextMonth(){
+  if(cMonth===11){cMonth=0;cYear++;}else cMonth++;
+  editDay=null;editDayW=null;selWeek=1;
+  const isAdmin=currentUser?.isAdmin&&viewingUser;
+  if(isAdmin){
+    document.getElementById('att-month2').textContent=MONTHS[cMonth];
+    document.getElementById('att-year2').textContent=cYear;
+    renderCurView2();
+  } else {
+    document.getElementById('att-month').textContent=MONTHS[cMonth];
+    document.getElementById('att-year').textContent=cYear;
+    renderCurView();
+  }
+}
+window.prevMonth=prevMonth;window.nextMonth=nextMonth;
+
+// ── MONTHLY ──
+function renderMonthlyFor(uid,targetId,canEdit){
+  const y=cYear,m=cMonth,total=dim(y,m),f=fd(y,m),recap=mRec(uid,y,m);
+  const legend=SESSIONS.map(s=>`<span class="chip" style="background:${s.color}18;border:1px solid ${s.color}44;color:${s.color}">${s.icon}${s.label}</span>`).join('');
+  let cells='';
+  for(let i=0;i<f;i++)cells+='<div></div>';
+  for(let d=1;d<=total;d++){
+    const dd=gdd(uid,y,m,d),cnt=cntDay(dd),sc=scDay(dd);
+    const isT=d===TODAY.getDate()&&m===TODAY.getMonth()&&y===TODAY.getFullYear(),isE=editDay===d;
+    const cls=['cal-day',cnt>0?'has-d':'',isT?'is-today':'',isE?'editing':''].filter(Boolean).join(' ');
+    const dots=cnt>0?`<div class="cal-dots">${SESSIONS.filter(s=>dd[s.key]).map(s=>`<span class="dot" style="background:${s.color}"></span>`).join('')}</div>`:'';
+    const click=canEdit?`onclick="window.__tglDay(${d})"`:''
+    cells+=`<div class="${cls}" ${click}><div class="cal-day-num">${d}</div>${cnt>0?`<div class="cal-score">${sc}p</div>`:''} ${dots}</div>`;
+  }
+  let editPanel='';
+  if(canEdit&&editDay){
+    const dd=gdd(uid,y,m,editDay),dow=new Date(y,m,editDay).getDay();
+    const btns=SESSIONS.map(s=>{const a=dd[s.key];return`<button class="sess-btn" onclick="window.__tog('${uid}',${y},${m},${editDay},'${s.key}')"
+      style="border-color:${a?s.color:'var(--border)'};background:${a?s.color+'22':'var(--bg2)'};color:${a?s.color:'var(--muted)'}">
+      <div class="s-icon">${a?'✅':'⬜'}</div><div style="font-weight:800;font-size:11px">${s.icon}${s.label}</div><div class="s-desc">${s.desc}</div></button>`;}).join('');
+    const sc=scDay(dd),cnt=cntDay(dd);
+    editPanel=`<div class="edit-panel fade-in">
+      <div style="font-weight:800;font-size:15px;color:var(--teal2);margin-bottom:12px">✏️ ${DF[dow]}, ${editDay} ${MONTHS[m]} ${y}</div>
+      <div class="sess-grid">${btns}</div>
+      <div style="margin-top:14px;text-align:center;background:var(--sage3);border:1px solid var(--sage4);border-radius:14px;padding:12px">
+        <span style="color:var(--muted);font-size:13px">Skor hari ini: </span>
+        <span style="font-weight:900;font-size:28px;color:var(--sage2);font-family:'Amiri',serif">${sc}</span>
+        <span style="color:var(--muted);font-size:12px"> poin (${cnt} sesi × 2)</span></div></div>`;
+  }
+  document.getElementById(targetId).innerHTML=`
+    <div class="legend">${legend}</div>
+    <div class="card" style="padding:12px">
+      <div class="cal-grid" style="margin-bottom:6px">${DS.map(d=>`<div class="cal-hdr">${d}</div>`).join('')}</div>
+      <div class="cal-grid">${cells}</div></div>
+    ${editPanel}
+    <div class="card card-teal">
+      <div style="font-weight:800;font-size:14px;color:var(--teal2);margin-bottom:12px">📅 Ringkasan ${MONTHS[m]} ${y}</div>
+      ${recapGrid(recap.totals,'var(--sage2)')}${sbHTML(recap.totalScore,`Total Bulan ${MONTHS[m]}`,'#6ba8b8')}</div>`;
+}
+
+// ── WEEKLY ──
+function renderWeeklyFor(uid,targetId,canEdit){
+  const y=cYear,m=cMonth,tw=wim(y,m);
+  if(selWeek>tw)selWeek=1;
+  const wr=wRec(uid,y,m,selWeek);
+  const t=dim(y,m),f=fd(y,m),days=[];
+  for(let d=1;d<=t;d++)if(wom(d,f)===selWeek)days.push(d);
+  const wBtns=Array.from({length:tw},(_,i)=>i+1).map(w=>`<button class="btn-week ${selWeek===w?'active':''}" onclick="window.__setWeek(${w})">Pekan ${w}</button>`).join('');
+  const dCards=days.map(d=>{
+    const dd=gdd(uid,y,m,d),cnt=cntDay(dd),sc=scDay(dd),dow=new Date(y,m,d).getDay();
+    const isT=d===TODAY.getDate()&&m===TODAY.getMonth()&&y===TODAY.getFullYear(),isE=canEdit&&editDayW===d;
+    const chips=SESSIONS.filter(s=>dd[s.key]).map(s=>`<span class="chip" style="background:${s.color}18;border:1px solid ${s.color}44;color:${s.color};font-size:10px;padding:2px 8px">${s.key}</span>`).join('');
+    let body='';
+    if(isE){
+      const btns=SESSIONS.map(s=>{const a=dd[s.key];return`<button class="sess-btn" onclick="window.__tog('${uid}',${y},${m},${d},'${s.key}')"
+        style="border-color:${a?s.color:'var(--border)'};background:${a?s.color+'22':'var(--card)'};color:${a?s.color:'var(--muted)'}">
+        <div>${a?'✅':'⬜'} ${s.icon}${s.label}</div><div class="s-desc">${s.desc}</div></button>`;}).join('');
+      body=`<div class="day-body open"><div class="sess-grid">${btns}</div></div>`;
+    }
+    return`<div class="day-card" style="border-color:${isT?'var(--sage)':isE?'var(--teal)':'var(--border)'}">
+      <div class="day-card-hdr" ${canEdit?`onclick="window.__tglDayW(${d})"`:''}>
+        <div class="day-num-box ${isT?'today':''}">
+          <div style="font-weight:800;font-size:16px;line-height:1;color:${isT?'#fff':'var(--text)'}">${d}</div>
+          <div style="font-size:9px;color:${isT?'rgba(255,255,255,0.8)':'var(--muted)'};font-weight:700">${DS[dow]}</div>
+        </div>
+        <div style="flex:1">
+          <div style="font-weight:800;font-size:14px;color:${isT?'var(--sage2)':'var(--text)'}">${DF[dow]}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">${cnt===0?`<span style="font-size:11px;color:var(--muted);font-weight:600">Belum diisi</span>`:chips}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-weight:900;font-size:24px;color:var(--sage2);font-family:'Amiri',serif">${sc}</div>
+          <div style="font-size:10px;color:var(--muted);font-weight:600">poin</div>
+        </div>
+      </div>${body}</div>`;
+  }).join('');
+  document.getElementById(targetId).innerHTML=`
+    <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px">${wBtns}</div>
+    ${dCards}
+    <div class="card card-sage">
+      <div style="font-weight:800;color:var(--sage2);margin-bottom:12px;font-size:14px">📊 Rekap Pekan ${selWeek} — ${MONTHS[m]} ${y}</div>
+      ${recapGrid(wr.totals,'var(--sage2)')}${sbHTML(wr.totalScore,`Total Pekan ${selWeek}`,'#7fb3a0')}</div>`;
+}
+
+// ── RECAP ──
+function renderRecapFor(uid,targetId,canPrint){
+  const y=cYear,m=cMonth,tw=wim(y,m),monthly=mRec(uid,y,m);
+  const wCards=Array.from({length:tw},(_,i)=>i+1).map(w=>{
+    const wr=wRec(uid,y,m,w);
+    const chips=SESSIONS.map(s=>`<span class="chip" style="background:${s.color}18;border:1px solid ${s.color}44;color:${s.color}">${s.icon}${s.key}: ${wr.totals[s.key]} <span style="color:var(--muted);font-weight:500">(=${wr.totals[s.key]*2}p)</span></span>`).join('');
+    return`<div class="card card-amber">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-weight:800;color:var(--amber2);font-size:14px">⭐ Pekan ${w}</div>
+        <div style="font-weight:900;color:var(--sage2);font-size:20px;font-family:'Amiri',serif">${wr.totalScore} <span style="font-size:11px;color:var(--muted);font-family:'Nunito',sans-serif">poin</span></div>
+      </div><div>${chips}</div></div>`;
+  }).join('');
+  const pBtn=canPrint?`<div style="display:flex;gap:8px"><button class="btn btn-teal" style="font-size:12px;padding:8px 14px" onclick="window.__exportMExcel('${uid}')">📊 Excel</button><button class="btn btn-amber" style="font-size:12px;padding:8px 14px" onclick="window.__printM('${uid}')">🖨️ Cetak</button></div>`:'';
+  document.getElementById(targetId).innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-weight:800;font-size:15px;color:var(--amber2)">📊 Rekap ${MONTHS[m]} ${y}</div>${pBtn}</div>
+    ${wCards}
+    <div class="card" style="border:2px solid var(--sage4)">
+      <div style="font-weight:800;font-size:16px;color:var(--sage2);margin-bottom:14px">🗓️ Total Bulan ${MONTHS[m]} ${y}</div>
+      ${recapGrid(monthly.totals,'var(--sage2)')}${sbHTML(monthly.totalScore,`Grand Total ${MONTHS[m]} ${y}`,'#7fb3a0',true)}</div>`;
+}
+
+// ── GLOBAL HANDLERS ──
+window.__tog=async(uid,y,m,d,sk)=>{
+  const k=dk(y,m,d);
+  if(!localDb[uid])localDb[uid]={};
+  const cur=localDb[uid][k]||emptyDay();
+  const updated={...cur,[sk]:!cur[sk]};
+  localDb[uid][k]=updated;
+  renderCurView();
+  try{await saveAtt(uid,k,updated);showToast('✅ Tersimpan');}
+  catch(e){showToast('❌ Gagal simpan',false);}
+};
+window.__tglDay=(d)=>{editDay=editDay===d?null:d;renderMonthlyFor(currentUser.id,'view-monthly',true);};
+window.__tglDayW=(d)=>{editDayW=editDayW===d?null:d;renderWeeklyFor(currentUser.id,'view-weekly',true);};
+window.__setWeek=(w)=>{selWeek=w;editDayW=null;renderCurView();renderCurView2();};
+window.__printM=(uid)=>{
+  const y=cYear,m=cMonth,tw=wim(y,m),monthly=mRec(uid,y,m),td=dim(y,m);
+  const u=users.find(x=>x.id===uid)||currentUser;
+  const uRolesStr=u?rolesText(u):'';  let html=`<html><head><title>Rekap ${MONTHS[m]} ${y}</title><style>body{font-family:Arial,sans-serif;padding:20px;color:#2d3748}h1{color:#5a9b86;font-size:20px}h2{color:#4d8fa0;font-size:15px;margin:16px 0 8px}table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px}th{background:#5a9b86;color:#fff;padding:8px;text-align:left}td{padding:6px 8px;border-bottom:1px solid #e2e8f0}tr:nth-child(even){background:#f7f9fc}.tot{background:#e8f4f0;font-weight:bold}.sc{font-size:32px;font-weight:900;color:#5a9b86;text-align:center;margin:16px 0}.sub{color:#8a97a8;font-size:12px;text-align:center}</style></head><body>
+  <h1>🕌 Rekap Daftar Hadir Halaqah</h1><p style="color:#8a97a8;font-size:13px">${u?.name} · ${uRolesStr} · ${MONTHS[m]} ${y}</p>`;
+  for(let w=1;w<=tw;w++){const wr=wRec(uid,y,m,w);html+=`<h2>Pekan ${w}</h2><table><tr><th>Sesi</th><th>Keterangan</th><th>Hadir</th><th>Poin (×2)</th></tr>${SESSIONS.map(s=>`<tr><td>${s.label}</td><td>${s.desc}</td><td>${wr.totals[s.key]}</td><td>${wr.totals[s.key]*2}</td></tr>`).join('')}<tr class="tot"><td colspan="2">Total Pekan ${w}</td><td colspan="2">${wr.totalScore} poin</td></tr></table>`;}
+  html+=`<h2 style="color:#5a9b86">📅 Total Bulanan</h2><table><tr><th>Sesi</th><th>Keterangan</th><th>Hadir</th><th>Poin (×2)</th></tr>${SESSIONS.map(s=>`<tr><td>${s.label}</td><td>${s.desc}</td><td>${monthly.totals[s.key]}</td><td>${monthly.totals[s.key]*2}</td></tr>`).join('')}<tr class="tot"><td colspan="2">GRAND TOTAL</td><td colspan="2">${monthly.totalScore} poin</td></tr></table><div class="sc">${monthly.totalScore}</div><div class="sub">Total Poin ${MONTHS[m]} ${y} — ${td} hari</div></body></html>`;
+  const w=window.open("","_blank");w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),400);
+};
+
+window.__exportMExcel=(uid)=>{
+  const y=cYear,m=cMonth,tw=wim(y,m),monthly=mRec(uid,y,m);
+  const u=users.find(x=>x.id===uid)||currentUser;
+  const nama=u?.name||'';
+  const jabatan=u?rolesText(u):'';
+  // Header info rows
+  const rows=[
+    ['Daftar Hadir Halaqah'],
+    ['Nama',nama],
+    ['Jabatan',jabatan],
+    ['Bulan',`${MONTHS[m]} ${y}`],
+    [],
+  ];
+  // Per week
+  for(let w=1;w<=tw;w++){
+    const wr=wRec(uid,y,m,w);
+    rows.push([`PEKAN ${w}`,'Keterangan','Jumlah Hadir','Poin (×2)']);
+    SESSIONS.forEach(s=>{rows.push([s.label,s.desc,wr.totals[s.key],wr.totals[s.key]*2]);});
+    rows.push(['','Total Pekan '+w,'',wr.totalScore+' poin']);
+    rows.push([]);
+  }
+  // Monthly total
+  rows.push(['TOTAL BULANAN','Keterangan','Jumlah Hadir','Poin (×2)']);
+  SESSIONS.forEach(s=>{rows.push([s.label,s.desc,monthly.totals[s.key],monthly.totals[s.key]*2]);});
+  rows.push(['','GRAND TOTAL','',monthly.totalScore+' poin']);
+  if(typeof XLSX!=='undefined'){
+    const ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=[{wch:8},{wch:34},{wch:14},{wch:12}];
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,`${nama.substring(0,20)}`);
+    XLSX.writeFile(wb,`Rekap_${nama.replace(/[^a-zA-Z0-9]/g,'_')}_${MONTHS[m]}_${y}.xlsx`);
+    showToast('✅ File Excel berhasil diunduh');
+  } else {
+    const csv=rows.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('
+');
+    const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download=`Rekap_${MONTHS[m]}_${y}.csv`;a.click();
+    showToast('✅ File CSV berhasil diunduh');
+  }
+};
+
+// ── INIT ──
+(async()=>{
+  try{
+    await loadUsers();
+    hideLoading();
+    showScreen('login');
+  }catch(e){
+    document.getElementById('loading').innerHTML=`
+      <div style="text-align:center;padding:30px 20px">
+        <div style="font-size:52px;margin-bottom:14px">❌</div>
+        <div style="color:var(--rose2);font-weight:800;font-size:16px;margin-bottom:8px">Gagal terhubung ke cloud</div>
+        <div style="color:var(--muted);font-size:13px;margin-bottom:4px">Pastikan Firestore sudah aktif</div>
+        <div style="color:var(--muted);font-size:12px;margin-bottom:16px">dan Rules sudah di-publish</div>
+        <button onclick="location.reload()" style="padding:10px 24px;background:linear-gradient(135deg,#7fb3a0,#5a9b86);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:14px;cursor:pointer">🔄 Coba Lagi</button>
+      </div>`;
+  }
+})();
+</script>
+</body>
+</html>
