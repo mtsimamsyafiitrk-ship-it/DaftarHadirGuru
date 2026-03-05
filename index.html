@@ -527,12 +527,36 @@ const DS=["Ahd","Sen","Sel","Rab","Kam","Jum","Sab"];
 const DF=["Ahad","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
 const TODAY=new Date();
 const ADMIN_DEFAULT_PW="Madras0h!";
+// ── CUSTOM USER ORDER ──
+const CUSTOM_ORDER=[
+  "HARMIN","ADNAN ABDUL RASYID","RUDDY HERMANTO","VIRGIAWAN","ASMIR","TASNIM",
+  "RHENDY FAHRULLAH","IMAM HIDAYAT","METRIC CISARUANDA","USMAN",
+  "MUHAMMAD IHSAN FAUZY","MUHAMMAD IQBAL","MUHAMMAD SYARIF",
+  "MUHAMMAD INDERA ALFHANDY","ASMAN SUGANDHA PRATAMA","NASRI JAYA FAJRIN",
+  "NM. ASMIN SUGANDHI PRATAMA","IRFAN HARJO SANTOSO",
+  "MUHAMMAD IHSAN","MUHAMMAD SYUKUR","MUHAMMAD KHAEZAR","NAZARULLY"
+];
+function getOrderIndex(name){
+  const upper=name.toUpperCase();
+  for(let i=0;i<CUSTOM_ORDER.length;i++){
+    if(upper.includes(CUSTOM_ORDER[i])||CUSTOM_ORDER[i].split(' ').every(w=>upper.includes(w)))return i;
+  }
+  return 9999;
+}
+function sortUsers(){
+  users.sort((a,b)=>{
+    const ia=getOrderIndex(a.name),ib=getOrderIndex(b.name);
+    if(ia!==ib)return ia-ib;
+    return a.name.localeCompare(b.name);
+  });
+}
+
 
 // ── STATE ──
 let users=[], localDb={};
 let currentUser=null;
 let loginRole='user';
-let muRole='Pengajar';
+window.muRole="Pengajar";
 let cYear=TODAY.getFullYear(), cMonth=TODAY.getMonth();
 let rekapYear=TODAY.getFullYear(), rekapMonth=TODAY.getMonth();
 let cView='monthly', cView2='monthly';
@@ -588,7 +612,7 @@ async function loadUsers(){
   const snap=await getDocs(collection(fs,"users"));
   users=[];
   snap.forEach(d=>users.push({id:d.id,...d.data()}));
-  users.sort((a,b)=>a.name.localeCompare(b.name));
+  sortUsers();
 }
 async function saveUserDoc(user){const{id,...data}=user;await setDoc(doc(fs,"users",id),data);}
 async function deleteUserDoc(id){
@@ -879,7 +903,7 @@ window.printRekap=printRekap;
 
 // ── ADMIN: ADD/EDIT MODAL ──
 function openAddUserModal(){
-  muRole='Pengajar';
+  window.muRole="Pengajar";
   document.getElementById('modal-uid').value='';
   document.getElementById('modal-user-title').textContent='➕ Tambah Pengguna';
   document.getElementById('mu-name').value='';
@@ -893,13 +917,13 @@ window.openAddUserModal=openAddUserModal;
 
 function renderMuRoles(){
   document.getElementById('mu-roles').innerHTML=ROLES.map(r=>{
-    const active=muRole===r;
+    const active=window.muRole===r;
     const rc=getRoleColor(r);
     return`<button onclick="window.__setMuRole('${r}')" style="padding:7px 12px;border-radius:10px;border:2px solid ${active?rc+'88':'var(--border)'};background:${active?rc+'18':'var(--bg2)'};color:${active?rc:'var(--muted)'};font-weight:700;font-size:12px;cursor:pointer;transition:all .2s">${r}</button>`;
   }).join('');
 }
 window.renderMuRoles=renderMuRoles;
-window.__setMuRole=(r)=>{muRole=r;renderMuRoles();};
+window.__setMuRole=(r)=>{window.muRole=r;renderMuRoles();};
 
 async function saveUserModal(){
   const uid=document.getElementById('modal-uid').value;
@@ -915,17 +939,17 @@ async function saveUserModal(){
   try{
     if(isEdit){
       const user=users.find(u=>u.id===uid);
-      user.name=name;user.username=username;user.role=muRole;
+      user.name=name;user.username=username;user.role=window.muRole;
       if(pw)user.pwHash=await hashPw(pw);
       await saveUserDoc(user);
       showToast('✅ Data pengguna diperbarui');
     } else {
       const id=Date.now().toString();
       const pwHash=await hashPw(pw);
-      const user={id,name,username,role:muRole,pwHash};
+      const user={id,name,username,role:window.muRole,pwHash};
       await saveUserDoc(user);
       users.push(user);
-      users.sort((a,b)=>a.name.localeCompare(b.name));
+      sortUsers();
       showToast('✅ Pengguna berhasil ditambahkan');
     }
     closeModal('modal-user');
@@ -937,7 +961,7 @@ window.saveUserModal=saveUserModal;
 
 window.__editUser=(id)=>{
   const u=users.find(x=>x.id===id);if(!u)return;
-  muRole=u.role;
+  window.muRole=u.role;
   document.getElementById('modal-uid').value=id;
   document.getElementById('modal-user-title').textContent='✏️ Edit Pengguna';
   document.getElementById('mu-name').value=u.name;
