@@ -95,9 +95,9 @@ async function countFilledSessions(uid, dateStr) {
 async function kirimWA(phone, nama) {
   const tgl = formatTanggal(todayWIB());
   const pesan =
-    `Halo ${nama}! 👋\n` +
-    `Absensi hari ini (${tgl}) belum lengkap nih.\n` +
-    `Yuk segera isi sebelum sore. Makasih! 🙏`;
+    `Bismillah, Izin Ustadz ${nama}! \n` +
+    `Absensi hari ini (${tgl}) belum lengkap.\n` +
+    `Yuk segera isi sebelum sore. Jangan lupa periksa hari lain juga yah. Semoga Allah mudahkan, Barakallahu fiik!`;
 
   try {
     const res = await fetch(FONNTE_URL, {
