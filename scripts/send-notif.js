@@ -56,13 +56,15 @@ async function isHoliday(dateStr) {
   }
 }
 
-/** Ambil semua user dengan role "user" yang punya nomor HP */
+/** Ambil semua user yang punya nomor HP dan status aktif */
 async function getUsers() {
   const snap = await db.collection('users').get();
   const users = [];
   snap.forEach(doc => {
     const u = { id: doc.id, ...doc.data() };
-    if (u.role === 'user' && u.phone && u.status !== 'inactive') {
+    const punya_hp = u.phone && u.phone.trim() !== "";
+    const aktif = u.status === "aktif" || u.status === "active" || !u.status;
+    if (punya_hp && aktif) {
       users.push(u);
     }
   });
@@ -169,3 +171,4 @@ main().catch(err => {
   console.error('💥 Fatal error:', err);
   process.exit(1);
 });
+
