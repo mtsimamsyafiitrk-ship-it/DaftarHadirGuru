@@ -97,7 +97,7 @@ async function kirimWA(phone, nama) {
   const pesan =
     `Bismillah, Izin Ustadz ${nama}! \n` +
     `Absensi hari ini (${tgl}) belum lengkap.\n` +
-    `Yuk segera isi sebelum sore. Jangan lupa periksa hari lain juga yah. Semoga Allah mudahkan, Barakallahu fiik!`;
+    `Yuk segera isi di link berikut https://mtsimamsyafiitrk.github.io/DaftarHadirGuru/ . Jangan lupa periksa hari lain juga yah. Semoga Allah mudahkan, Barakallahu fiik!`;
 
   try {
     const res = await fetch(FONNTE_URL, {
