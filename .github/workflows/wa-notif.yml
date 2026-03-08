@@ -1,0 +1,31 @@
+name: Notifikasi Absensi WA
+
+on:
+  schedule:
+    # Jam 09:00 UTC = 16:00 WIB, setiap Sabtu-Kamis (0=Minggu, 6=Sabtu)
+    - cron: '0 9 * * 0,1,2,3,4,6'
+  workflow_dispatch: # bisa dijalankan manual dari GitHub untuk testing
+
+jobs:
+  send-notif:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          cd scripts
+          npm install
+
+      - name: Jalankan script notifikasi
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FONNTE_TOKEN: ${{ secrets.FONNTE_TOKEN }}
+        run: node scripts/send-notif.js
