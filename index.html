@@ -35,8 +35,8 @@
           <h2>🔐 Login</h2>
           
           <div class="form-group">
-            <label class="form-label">Username</label>
-            <input id="input-username" class="form-input" type="text" placeholder="Masukkan username" autocomplete="off">
+            <label class="form-label">Email</label>
+            <input id="input-username" class="form-input" type="email" placeholder="Masukkan email" autocomplete="off">
           </div>
           
           <div class="form-group">
@@ -83,12 +83,19 @@
       </div>
     </div>
 
-    <!-- DASHBOARD SCREEN -->
+    <!-- DASHBOARD SCREEN (User) -->
     <div id="screen-dashboard" class="screen">
       <div class="container">
         <div class="card">
           <h2>👋 Selamat Datang!</h2>
           <p id="user-greeting" class="text-muted">Memuat data pengguna...</p>
+        </div>
+
+        <div class="card">
+          <h3>📅 Jadwal Hari Ini</h3>
+          <div id="today-schedule" style="display: grid; gap: 8px;">
+            <p class="text-muted">Memuat jadwal...</p>
+          </div>
         </div>
 
         <div class="card">
@@ -100,28 +107,25 @@
           </div>
           
           <div class="form-group">
-            <label class="form-label">Status Kehadiran</label>
-            <select id="select-attendance" class="form-select">
-              <option value="">-- Pilih Status --</option>
-              <option value="hadir">✅ Hadir</option>
-              <option value="izin">📋 Izin</option>
-              <option value="sakit">🏥 Sakit</option>
-              <option value="alpa">❌ Alpa</option>
-            </select>
+            <label class="form-label">Session Kehadiran</label>
+            <div id="attendance-sessions-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;">
+              <p class="text-muted">Memuat session...</p>
+            </div>
           </div>
           
-          <button id="btn-attendance" class="btn btn-primary btn-block">Catat Kehadiran</button>
+          <button id="btn-attendance" class="btn btn-primary btn-block">✅ Catat Kehadiran</button>
         </div>
 
         <div class="card">
           <h3>📊 Riwayat Kehadiran</h3>
-          <div id="attendance-history" style="max-height: 200px; overflow-y: auto;">
+          <div id="attendance-history" style="max-height: 300px; overflow-y: auto;">
             <p class="text-muted">Memuat riwayat...</p>
           </div>
         </div>
       </div>
     </div>
-        <!-- ADMIN SCREEN -->
+
+    <!-- ADMIN SCREEN -->
     <div id="screen-admin" class="screen">
       <div class="container" style="max-width: 1200px;">
         <div class="card" style="margin-bottom: 20px;">
@@ -151,7 +155,7 @@
           </button>
         </div>
 
-        <!-- TAB CONTENT AKAN DI-LOAD DARI admin-panel.html -->
+        <!-- ADMIN TAB CONTENT -->
         <div id="admin-tabs-container">
           <!-- Overview Tab -->
           <div id="admin-tab-overview" class="admin-tab" style="display: block;">
@@ -188,7 +192,7 @@
             </div>
           </div>
 
-          <!-- Other tabs placeholder (akan di-implement nanti) -->
+          <!-- Other tabs placeholder -->
           <div id="admin-tab-users" class="admin-tab" style="display: none;">
             <div class="card"><p>Users tab - loading...</p></div>
           </div>
@@ -209,12 +213,12 @@
     </div>
   </main>
 
-    <!-- FOOTER/NAVIGATION -->
+  <!-- FOOTER/NAVIGATION -->
   <footer class="footer">
     <div class="container text-center">
-      <button id="btn-logout" class="btn btn-secondary" style="display: none;">🚪 Logout User</button>
-      <button id="btn-admin-logout" class="btn btn-secondary" style="display: none;">🚪 Logout Admin</button>
-      <p class="text-muted mt-md" style="font-size: 12px;">v2.0.0 | With Admin Panel | Built with ❤️</p>
+      <button id="btn-logout" class="btn btn-secondary">🚪 Logout</button>
+      <button id="btn-admin-logout" class="btn btn-secondary">🚪 Logout (Admin)</button>
+      <p class="text-muted mt-md" style="font-size: 12px;">v2.0.0 | Firebase + Admin Panel | Built with ❤️</p>
     </div>
   </footer>
 
@@ -227,7 +231,7 @@
     <div id="loading-msg">Memuat...</div>
   </div>
 
-  <!-- SCRIPTS - Utilities -->
+  <!-- SCRIPTS - Utilities (Load FIRST) -->
   <script src="scripts/utils/helpers.js"></script>
   <script src="scripts/utils/storage.js"></script>
   <script src="scripts/utils/validators.js"></script>
@@ -239,28 +243,30 @@
   <script src="scripts/services/notification-service.js"></script>
   <script src="scripts/services/loader-service.js"></script>
 
-    <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js"></script>
+  <!-- Firebase SDK v8 (Legacy compatible) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js"></script>
 
-    <!-- SCRIPTS - Configuration & Firebase -->
-  <script src="scripts/firebase-migration.js"></script>
+  <!-- SCRIPTS - Firebase Config (Load AFTER Firebase SDK) -->
   <script src="scripts/config.js"></script>
   <script src="scripts/firebase-config.js"></script>
 
-  <!-- SCRIPTS - Managers (Admin) -->
+  <!-- SCRIPTS - Managers (Admin) - Load AFTER Firebase -->
   <script src="scripts/admin/schedule-manager.js"></script>
   <script src="scripts/admin/remarks-manager.js"></script>
   <script src="scripts/admin/user-manager.js"></script>
   <script src="scripts/admin/attendance-analytics.js"></script>
 
-  <!-- SCRIPTS - Application -->
+  <!-- SCRIPTS - Migration (Load AFTER Firebase Config) -->
+  <script src="scripts/firebase-migration.js"></script>
+
+  <!-- SCRIPTS - Application (Load LAST) -->
   <script src="scripts/app.js"></script>
 
-    <!-- Initialize app on load -->
+  <!-- Initialize app on load -->
   <script>
     // Set today's date in attendance form
     document.addEventListener('DOMContentLoaded', function() {
