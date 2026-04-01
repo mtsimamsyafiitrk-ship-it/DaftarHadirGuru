@@ -266,5 +266,47 @@ class FirebaseMigration {
       if (!step2.success) throw new Error('Failed to migrate attendance');
 
       // Step 3: Backup
-      const step3 = await this.backupOldData();*
-
+      const step3 = await this.backupOldData();
+      if (!step3.success) throw new Error('Failed to backup data');
+
+      notification.success('MIGRATION COMPLETED SUCCESSFULLY! ✅');
+      console.log('[Migration] Full migration completed');
+      
+      return {
+        success: true,
+        summary: {
+          usersCreated: this.pegawaiList.length,
+          attendanceRecordsMigrated: step2.recordsCount,
+          backupCreated: true
+        }
+      };
+    } catch (error) {
+      console.error('[Migration] Full migration failed:', error);
+      notification.error('Migration failed: ' + error.message);
+      return { success: false, message: error.message };
+    }
+  }
+
+  // Show migration status
+  async getMigrationStatus() {
+    try {
+      const usersSnapshot = await db.collection('users').get();
+      const attendanceSnapshot = await db.collection('attendance').get();
+
+      return {
+        totalUsers: usersSnapshot.size,
+        totalAttendanceRecords: attendanceSnapshot.size,
+        hasBackup: !!(await db.collection('_backups').doc('pre-migration-backup').get()).exists
+      };
+    } catch (error) {
+      console.error('[Migration] Error getting status:', error);
+      return null;
+    }
+  }
+}
+
+const firebaseMigration = new FirebaseMigration();
+
+// Add migration menu ke admin panel
+console.log('[Migration] Migration script loaded. Run: firebaseMigration.runFullMigration()');
+
