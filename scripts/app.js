@@ -1,9 +1,10 @@
-// Application Bootstrap & Initialization with Firebase
+// Application Bootstrap & Initialization with Firebase + Admin
 class Application {
   constructor() {
     this.currentUser = null;
     this.currentScreen = 'login';
     this.unsubscribeAttendance = null;
+    this.isAdmin = false;
   }
 
   async init() {
@@ -18,14 +19,26 @@ class Application {
       // Wait for auth state
       await this.waitForAuthState();
       
+      // Check if admin
+      this.isAdmin = await this.checkAdminStatus();
+      
       // Setup event listeners
       this.setupEventListeners();
       
+      // Initialize managers
+      await scheduleManager.loadAllSchedules();
+      await userManager.loadAllUsers();
+      
       // Show appropriate screen
       if (this.currentUser && this.currentUser.email) {
-        this.showScreen('dashboard');
-        this.loadAttendanceData();
-        console.log('[App] User logged in:', this.currentUser.email);
+        if (this.isAdmin) {
+          this.showScreen('admin');
+          console.log('[App] Admin logged in:', this.currentUser.email);
+        } else {
+          this.showScreen('dashboard');
+          this.loadAttendanceData();
+          console.log('[App] User logged in:', this.currentUser.email);
+        }
       } else {
         this.showScreen('login');
         console.log('[App] No user logged in');
@@ -47,7 +60,7 @@ class Application {
               this.currentUser = {
                 id: user.uid,
                 email: user.email,
-                username: user.displayName || doc.data().username,
+                username: user.displayName || doc.data().name || doc.data().username,
                 role: doc.data().role || 'user'
               };
             }
@@ -59,6 +72,15 @@ class Application {
     });
   }
 
+  // Check if current user is admin
+  async checkAdminStatus() {
+    if (!this.currentUser) return false;
+    
+    // Check if email is admin email
+    const adminEmail = 'mtsimamsyafiitrk@gmail.com';
+    return this.currentUser.email === adminEmail;
+  }
+
   setupEventListeners() {
     // Login form
     const loginBtn = Helpers.getEl('btn-login');
@@ -66,7 +88,7 @@ class Application {
       loginBtn.addEventListener('click', () => this.handleLogin());
     }
 
-    // Register form
+    // Register form (hidden for now - only admin creates users)
     const registerBtn = Helpers.getEl('btn-register');
     if (registerBtn) {
       registerBtn.addEventListener('click', () => this.handleRegister());
@@ -76,6 +98,12 @@ class Application {
     const logoutBtn = Helpers.getEl('btn-logout');
     if (logoutBtn) {
       logoutBtn.addEventListener('click', () => this.handleLogout());
+    }
+
+    // Admin logout
+    const adminLogoutBtn = Helpers.getEl('btn-admin-logout');
+    if (adminLogoutBtn) {
+      adminLogoutBtn.addEventListener('click', () => this.handleLogout());
     }
 
     // Mark attendance
@@ -103,8 +131,18 @@ class Application {
       if (result.success) {
         this.currentUser = result.user;
         notification.success('Login berhasil!');
-        this.showScreen('dashboard');
-        this.loadAttendanceData();
+        
+        // Check if admin
+        this.checkAdminStatus().then((isAdmin) => {
+          this.isAdmin = isAdmin;
+          if (isAdmin) {
+            this.showScreen('admin');
+            switchAdminTab('overview');
+          } else {
+            this.showScreen('dashboard');
+            this.loadAttendanceData();
+          }
+        });
       } else {
         notification.error(result.message);
       }
@@ -112,50 +150,24 @@ class Application {
   }
 
   handleRegister() {
-    const username = Helpers.getEl('input-reg-username')?.value;
-    const email = Helpers.getEl('input-reg-email')?.value;
-    const password = Helpers.getEl('input-reg-password')?.value;
-
-    if (!Validators.required(username) || !Validators.required(email) || !Validators.required(password)) {
-      notification.error('Semua field wajib diisi');
-      return;
-    }
-
-    if (!Validators.email(email)) {
-      notification.error('Email tidak valid');
-      return;
-    }
-
-    if (!Validators.password(password)) {
-      notification.error('Password minimal 6 karakter');
-      return;
-    }
-
-    authService.register(email, password, username).then((result) => {
-      if (result.success) {
-        notification.success('Registrasi berhasil! Silakan login');
-        this.showScreen('login');
-        
-        // Clear form
-        Helpers.getEl('input-reg-username').value = '';
-        Helpers.getEl('input-reg-email').value = '';
-        Helpers.getEl('input-reg-password').value = '';
-      } else {
-        notification.error(result.message);
-      }
-    });
+    notification.error('Registrasi tidak tersedia. Hubungi admin untuk membuat akun.');
   }
 
   handleLogout() {
     authService.logout().then((result) => {
       if (result.success) {
         this.currentUser = null;
+        this.isAdmin = false;
         this.showScreen('login');
         
         // Unsubscribe from attendance listener
         if (this.unsubscribeAttendance) {
           this.unsubscribeAttendance();
         }
+
+        // Clear forms
+        Helpers.getEl('input-username').value = '';
+        Helpers.getEl('input-password').value = '';
       } else {
         notification.error(result.message);
       }
@@ -169,35 +181,84 @@ class Application {
     }
 
     const today = DateUtils.today();
-    const status = Helpers.getEl('select-attendance')?.value;
+    const todaySchedule = scheduleManager.schedules[this.currentUser.id]?.[this.getDayName()] || [];
 
-    if (!status) {
-      notification.error('Pilih status kehadiran');
+    if (todaySchedule.length === 0) {
+      notification.warning('Tidak ada jadwal untuk hari ini');
+      return;
+    }
+
+    // Collect checked sessions
+    const checkedSessions = [];
+    todaySchedule.forEach((session) => {
+      const checkbox = Helpers.getEl(`checkbox-${session}`);
+      if (checkbox && checkbox.checked) {
+        checkedSessions.push(session);
+      }
+    });
+
+    if (checkedSessions.length === 0) {
+      notification.error('Pilih minimal satu session');
       return;
     }
 
     loader.show('Mencatat kehadiran...');
 
-    // Save to Firestore
-    db.collection('attendance').add({
-      userId: this.currentUser.id,
-      username: this.currentUser.username,
-      email: this.currentUser.email,
-      date: today,
-      status: status,
-      timestamp: new Date().toISOString(),
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
-      loader.hide();
-      notification.success('Kehadiran berhasil dicatat');
-      Helpers.getEl('select-attendance').value = '';
-      this.loadAttendanceData();
-      console.log('[App] Attendance recorded:', { date: today, status });
-    }).catch((error) => {
-      loader.hide();
-      console.error('[App] Error recording attendance:', error);
-      notification.error('Gagal mencatat kehadiran');
-    });
+    // Find existing attendance document
+    db.collection('attendance')
+      .where('userId', '==', this.currentUser.id)
+      .where('date', '==', today)
+      .get()
+      .then((query) => {
+        let docRef;
+        let isNew = false;
+
+        if (query.empty) {
+          // Create new document
+          docRef = db.collection('attendance').doc();
+          isNew = true;
+        } else {
+          docRef = query.docs[0].ref;
+        }
+
+        // Prepare update data
+        const updateData = {
+          userId: this.currentUser.id,
+          username: this.currentUser.username,
+          email: this.currentUser.email,
+          date: today,
+          timestamp: new Date().toISOString(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        // Add session data
+        todaySchedule.forEach((session) => {
+          const checkbox = Helpers.getEl(`checkbox-${session}`);
+          updateData[session] = checkbox ? checkbox.checked : false;
+          updateData[`${session}_status`] = 'present'; // Default status
+          updateData[`${session}_updated_at`] = new Date().toISOString();
+        });
+
+        if (isNew) {
+          updateData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+          docRef.set(updateData);
+        } else {
+          docRef.update(updateData);
+        }
+
+        return docRef;
+      })
+      .then(() => {
+        loader.hide();
+        notification.success('Kehadiran berhasil dicatat');
+        this.loadAttendanceData();
+        console.log('[App] Attendance recorded:', { date: today, sessions: checkedSessions });
+      })
+      .catch((error) => {
+        loader.hide();
+        console.error('[App] Error recording attendance:', error);
+        notification.error('Gagal mencatat kehadiran: ' + error.message);
+      });
   }
 
   loadAttendanceData() {
@@ -210,10 +271,13 @@ class Application {
       this.unsubscribeAttendance();
     }
 
+    // Update attendance form dengan jadwal hari ini
+    this.updateAttendanceForm();
+
     // Real-time listener for user's attendance
     this.unsubscribeAttendance = db.collection('attendance')
       .where('userId', '==', this.currentUser.id)
-      .orderBy('createdAt', 'desc')
+      .orderBy('updatedAt', 'desc')
       .limit(10)
       .onSnapshot((querySnapshot) => {
         const historyContainer = Helpers.getEl('attendance-history');
@@ -234,15 +298,23 @@ class Application {
             'alpa': '❌'
           };
           
+          // Build session info for this day
+          let sessionsInfo = '';
+          const sessions = ['H1', 'H2', 'H3', 'J1', 'J2', 'J3', 'J4', 'S1', 'S2'];
+          sessions.forEach((session) => {
+            if (data[session] !== undefined) {
+              const attended = data[session] ? '✅' : '❌';
+              const status = data[`${session}_status`] || 'pending';
+              sessionsInfo += `${session}:${attended} `;
+            }
+          });
+          
           historyHTML += `
             <div class="card" style="margin-bottom: 8px; padding: 8px 12px;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                  <strong>${data.date}</strong>
-                  <br>
-                  <small class="text-muted">${data.status}</small>
-                </div>
-                <span style="font-size: 20px;">${statusEmoji[data.status] || '❓'}</span>
+              <div>
+                <strong>${data.date}</strong>
+                <br>
+                <small class="text-muted">${sessionsInfo}</small>
               </div>
             </div>
           `;
@@ -256,6 +328,50 @@ class Application {
         console.error('[App] Error loading attendance:', error);
         notification.error('Gagal memuat riwayat kehadiran');
       });
+  }
+
+  // Update attendance form based on today's schedule
+  async updateAttendanceForm() {
+    const todaySchedule = scheduleManager.schedules[this.currentUser.id]?.[this.getDayName()] || [];
+    const container = Helpers.getEl('attendance-sessions-container');
+    
+    if (!container) return;
+
+    if (todaySchedule.length === 0) {
+      container.innerHTML = '<p class="text-muted">Tidak ada jadwal untuk hari ini</p>';
+      return;
+    }
+
+    let html = '';
+    const sessionNames = {
+      'H1': 'Halaqah Subuh',
+      'H2': 'Halaqah Dhuha',
+      'H3': 'Halaqah Siang',
+      'J1': 'Jam Pelajaran 1',
+      'J2': 'Jam Pelajaran 2',
+      'J3': 'Jam Pelajaran 3',
+      'J4': 'Jam Pelajaran 4',
+      'S1': 'Jam Kelas Sore',
+      'S2': 'Jam Kelas Malam'
+    };
+
+    todaySchedule.forEach((session) => {
+      html += `
+        <div class="form-group">
+          <label style="display: flex; align-items: center; cursor: pointer;">
+            <input id="checkbox-${session}" type="checkbox" style="width: 18px; height: 18px; cursor: pointer; margin-right: 8px;">
+            <span>${session} - ${sessionNames[session]}</span>
+          </label>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+  }
+
+  getDayName() {
+    const days = ['minggu', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+    return days[new Date().getDay()];
   }
 
   showScreen(screenName) {
@@ -275,7 +391,15 @@ class Application {
       if (screenName === 'dashboard' && this.currentUser) {
         const greeting = Helpers.getEl('user-greeting');
         if (greeting) {
-          greeting.textContent = `Halo, ${this.currentUser.username}! 👋 (${this.currentUser.email})`;
+          greeting.textContent = `Halo, ${this.currentUser.username}! 👋`;
+        }
+      }
+
+      // Update admin greeting
+      if (screenName === 'admin' && this.currentUser) {
+        const adminGreeting = Helpers.getEl('admin-greeting');
+        if (adminGreeting) {
+          adminGreeting.textContent = `Welcome, Admin ${this.currentUser.username}! 👨‍💼`;
         }
       }
       
@@ -289,6 +413,10 @@ class Application {
 
   isLoggedIn() {
     return !!this.currentUser;
+  }
+
+  isUserAdmin() {
+    return this.isAdmin;
   }
 }
 
@@ -304,6 +432,10 @@ document.addEventListener('DOMContentLoaded', () => {
   window.authService = authService;
   window.notification = notification;
   window.loader = loader;
+  window.scheduleManager = scheduleManager;
+  window.userManager = userManager;
+  window.remarksManager = remarksManager;
+  window.attendanceAnalytics = attendanceAnalytics;
   
   console.log('[App] Global objects available in console');
   console.log('[App] Firebase connected:', firebase.app().name);
