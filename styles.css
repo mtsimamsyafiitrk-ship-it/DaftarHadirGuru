@@ -805,3 +805,287 @@ tr:last-child td { border-bottom: none; }
   tr:nth-child(even) { background: #f7f9fc; }
   .tot { background: #e8f4f0 !important; font-weight: bold; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   FIX: class-class yang dipakai di app.js tapi terlewat di atas
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Avatar (lingkaran gradient dengan huruf inisial) ── */
+.avatar {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--sage-300), var(--sage-500));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 15px;
+  flex-shrink: 0;
+  letter-spacing: -0.02em;
+}
+.avatar-lg { width: 64px; height: 64px; font-size: 22px; border-radius: 20px; }
+.avatar-sm { width: 36px; height: 36px; font-size: 13px; }
+
+/* ── Recap Grid (grid 3×3 untuk H1..S2) ── */
+.recap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.recap-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Score Badge (ringkasan skor besar) ── */
+.score-badge {
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  text-align: left;
+}
+
+/* ── Day Card (kartu harian di weekly view) ── */
+.day-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: border-color 0.2s var(--ease-out);
+}
+.day-card-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  cursor: pointer;
+  gap: 10px;
+}
+.day-card-hdr:hover { background: var(--sage-50); }
+.day-body {
+  display: none;
+  padding: 12px 14px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.day-body.open { display: block; animation: fadeIn 0.25s var(--ease-out); }
+
+/* ── Edit Panel (panel edit saat klik tanggal) ── */
+.edit-panel {
+  background: linear-gradient(160deg, var(--info-soft), var(--surface));
+  border: 1.5px solid rgba(90, 138, 170, 0.2);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  margin-top: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Session button (button sesi dalam edit panel / day body) ── */
+.sess-btn {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px 8px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.sess-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.sess-btn:active:not(:disabled) { transform: scale(0.96); }
+.sess-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Dot (cal-day dots indicator) ── */
+.dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* ── Legend (keterangan warna di bawah kalender) ── */
+.legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
+/* ── Month Nav (navigasi bulan bulanan/rekap) ── */
+.month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+/* ── Section title ── */
+.sec-title {
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--ink);
+  margin: 14px 0 10px;
+  letter-spacing: -0.01em;
+}
+
+/* ── Loading overlay (saat loading fullscreen) ── */
+.loading-overlay {
+  position: fixed; inset: 0;
+  background: rgba(20, 32, 27, 0.55);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+}
+
+/* ── Spinner ── */
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--sage-100);
+  border-top-color: var(--sage-500);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Toast (class alias — selain #toast yang sudah ada) ── */
+.toast {
+  background: var(--ink);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow-lg);
+}
+
+/* ── Header info title (di header screen: nama app + sub) ── */
+.app-title {
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--ink);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.app-sub {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* ── Session item icon & desc (dipakai di sess grid) ── */
+.s-icon { font-size: 22px; line-height: 1; }
+.s-desc {
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+/* ── Holiday Notif Modal (pop-up saat tap hari libur) ── */
+.holiday-notif-box {
+  background: var(--surface);
+  border-radius: var(--r-xl);
+  padding: 28px 24px;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  animation: popIn 0.3s var(--ease-spring);
+}
+.holiday-notif-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.holiday-notif-icon { font-size: 42px; }
+.holiday-notif-title {
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--danger);
+  letter-spacing: -0.01em;
+}
+.holiday-notif-sub {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.holiday-notif-body {
+  background: var(--danger-soft);
+  border: 1px solid rgba(196, 104, 94, 0.2);
+  border-radius: var(--r-md);
+  padding: 14px;
+  margin-bottom: 14px;
+}
+.holiday-notif-msg {
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.5;
+  font-weight: 500;
+}
+.holiday-notif-btn {
+  background: var(--sage-500);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-md);
+  padding: 12px 24px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.2s;
+}
+.holiday-notif-btn:hover { background: var(--sage-600); }
+
+/* ── Kop surat (printable letterhead) ── */
+.kop { text-align: center; }
+.inst { font-size: 15pt; font-weight: bold; margin: 2px 0; }
+.sub  { font-size: 10pt; }
+.note { font-size: 9pt; color: #888; text-align: center; margin-top: 16px; }
+.grand { background: #f0f9f6; font-weight: bold; text-align: center; }
+.ttd { display: flex; justify-content: space-between; margin-top: 40px; font-size: 10pt; }
+.ttd-box { text-align: center; width: 220px; }
+.ttd-name { font-weight: bold; text-decoration: underline; margin-top: 50px; }
+.total-row { background: var(--sage-50); font-weight: bold; }
+.recap-table-wrap { overflow-x: auto; }
+.sc { font-size: 32px; font-weight: 900; color: var(--sage-500); text-align: center; margin: 16px 0; }
+.eye { cursor: pointer; user-select: none; }
+
+/* ── Login error: default hidden jika kosong ── */
+.login-err:empty { display: none; }
+.login-err {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid rgba(196,104,94,0.2);
+  border-radius: var(--r-sm);
+  padding: 10px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
+/* ── Fix untuk ucard: pastikan struktur internalnya tampil benar ── */
+.ucard > div {
+  width: 100%;
+}
