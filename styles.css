@@ -1,0 +1,807 @@
+/* ════════════════════════════════════════════════════════════════
+   DAFTAR HADIR GURU — MTs Imam Asy-Syafi'i Tarakan
+   Stylesheet v2 (Tahap A: Design tokens + komponen dasar)
+
+   Filosofi:
+   - Token utama pakai skema baru dari mockup (--sage-50..600, --ink, --surface).
+   - Token lama (--sage, --sage2, --text, dll) tetap ada sebagai ALIAS
+     supaya inline style di HTML & JS (mis. style="color:var(--text)")
+     tetap jalan tanpa harus ganti puluhan tempat.
+   - Font: Plus Jakarta Sans + Fraunces (dari Google Fonts).
+   ════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Soft neutrals ── */
+  --bg:            #f4f6f5;
+  --surface:       #ffffff;
+  --surface-2:     #f9faf9;
+  --border:        #e6ebe9;
+  --border-strong: #d4dcd9;
+
+  /* ── Text ── */
+  --ink:     #1a2420;
+  --ink-2:   #3d4844;
+  --muted:   #8a948f;
+  --muted-2: #aab3ae;
+
+  /* ── Sage (brand) ── */
+  --sage-50:  #eef5f1;
+  --sage-100: #dce9e2;
+  --sage-200: #b8d3c5;
+  --sage-300: #8fb8a3;
+  --sage-400: #5a9b86;
+  --sage-500: #447f6c;
+  --sage-600: #346152;
+
+  /* ── Semantic accents ── */
+  --warn:        #c48a4a;
+  --warn-soft:   #fdf2e1;
+  --danger:      #c4685e;
+  --danger-soft: #fbeae7;
+  --info:        #5a8aaa;
+  --info-soft:   #e8f0f5;
+
+  /* ── Elevations ── */
+  --shadow-sm:   0 1px 2px rgba(26, 36, 32, 0.04), 0 1px 3px rgba(26, 36, 32, 0.03);
+  --shadow-md:   0 2px 6px rgba(26, 36, 32, 0.05), 0 8px 20px rgba(26, 36, 32, 0.06);
+  --shadow-lg:   0 8px 30px rgba(26, 36, 32, 0.09), 0 20px 60px rgba(26, 36, 32, 0.08);
+  --shadow-sage: 0 6px 24px rgba(68, 127, 108, 0.28);
+
+  /* ── Radii ── */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+
+  /* ── Motion ── */
+  --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ════════════════════════════════════════════════════════════
+     ALIAS untuk nama token lama yang masih dipakai di inline
+     style (HTML & JS). Jangan dihapus tanpa update kode inline.
+     ════════════════════════════════════════════════════════════ */
+  --bg2:      var(--surface-2);
+  --card:     var(--surface);
+  --card2:    var(--surface-2);
+  --border2:  var(--border-strong);
+  --text:     var(--ink);
+  --text2:    var(--ink-2);
+
+  --sage:   var(--sage-300);
+  --sage2:  var(--sage-500);
+  --sage3:  var(--sage-50);
+  --sage4:  var(--sage-100);
+
+  --teal:   var(--info);
+  --teal2:  var(--info);
+  --teal3:  var(--info-soft);
+
+  --rose:   var(--danger);
+  --rose2:  var(--danger);
+  --rose3:  var(--danger-soft);
+
+  --amber:   var(--warn);
+  --amber2:  var(--warn);
+  --amber3:  var(--warn-soft);
+
+  --lavender:  #9b8fc4;
+  --lavender2: #7b6ea8;
+  --lavender3: #f5f3fc;
+
+  --muted-bg: var(--bg);
+
+  --shadow:  var(--shadow-sm);
+  --shadow2: var(--shadow-md);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  font-family: 'Plus Jakarta Sans', -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'ss01', 'cv11';
+  min-height: 100vh;
+}
+
+/* Bilangan besar gaya display: pakai Fraunces (serif kontemporer) */
+.display-num { font-family: 'Fraunces', Georgia, serif; font-weight: 500; letter-spacing: -0.02em; }
+
+/* ════════════════════════════════════════════════
+   LAYOUT
+   ════════════════════════════════════════════════ */
+.screen { display: none; }
+.screen.active { display: block; animation: fadeIn 0.3s var(--ease-out) both; }
+
+.header {
+  padding: 16px 18px 12px;
+  position: sticky; top: 0; z-index: 100;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+.hinner { display: flex; align-items: center; gap: 12px; max-width: 680px; margin: 0 auto; }
+.hrow   { max-width: 680px; margin: 10px auto 0; display: flex; align-items: center; gap: 10px; }
+.body   { max-width: 680px; margin: 0 auto; padding: 18px 16px 100px; }
+
+/* ════════════════════════════════════════════════
+   CARDS
+   ════════════════════════════════════════════════ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s var(--ease-out);
+}
+.card:hover { box-shadow: var(--shadow-md); }
+
+/* Varian warna (soft gradients) — dipakai di banyak tempat */
+.card-sage     { background: linear-gradient(160deg, var(--sage-50),   var(--surface)); border-color: var(--sage-100); }
+.card-teal     { background: linear-gradient(160deg, var(--info-soft), var(--surface)); border-color: rgba(90,138,170,0.2); }
+.card-rose     { background: linear-gradient(160deg, var(--danger-soft), var(--surface)); border-color: rgba(196,104,94,0.2); }
+.card-amber    { background: linear-gradient(160deg, var(--warn-soft), var(--surface)); border-color: rgba(196,138,74,0.2); }
+.card-lavender { background: linear-gradient(160deg, #f5f3fc, var(--surface)); border-color: #d8d2ec; }
+.card-sky      { background: linear-gradient(160deg, #eef4f9, var(--surface)); border-color: #c2d8e8; }
+
+/* ════════════════════════════════════════════════
+   BUTTONS
+   ════════════════════════════════════════════════ */
+.btn {
+  border: none;
+  border-radius: var(--r-md);
+  padding: 12px 18px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:hover  { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn:active { transform: scale(0.97); }
+
+/* Varian warna — dipetakan ke palet baru */
+.btn-sage     { background: var(--sage-500); color: #fff; box-shadow: var(--shadow-sage); }
+.btn-sage:hover { background: var(--sage-600); }
+.btn-teal     { background: var(--info); color: #fff; }
+.btn-teal:hover { background: #406e89; }
+.btn-rose     { background: var(--danger); color: #fff; }
+.btn-rose:hover { background: #a85a51; }
+.btn-amber    { background: var(--warn); color: #fff; }
+.btn-amber:hover { background: #a87640; }
+.btn-lavender { background: var(--lavender2); color: #fff; }
+.btn-lavender:hover { background: #6a5d97; }
+.btn-gray     { background: var(--surface-2); border: 1px solid var(--border) !important; color: var(--ink-2); font-weight: 600; }
+.btn-gray:hover { background: var(--border); color: var(--ink); }
+
+/* Button ghost: outline tipis, tanpa background */
+.btn-ghost {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--ink-2);
+  border-radius: var(--r-sm);
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+.btn-ghost:hover { background: var(--sage-50); color: var(--sage-500); border-color: var(--sage-200); }
+
+/* Icon button: bulat, minimal */
+.btn-icon {
+  background: none;
+  border: 1px solid transparent;
+  font-size: 17px;
+  padding: 6px 9px;
+  border-radius: var(--r-sm);
+  transition: all 0.2s;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.btn-icon:hover { background: var(--sage-50); border-color: var(--sage-100); transform: scale(1.08); }
+
+/* Nav button — tombol panah di header (<, >) */
+.btn-nav {
+  width: 44px; height: 44px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--ink-2);
+  font-size: 18px;
+  font-weight: 800;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+.btn-nav:hover { background: var(--sage-50); border-color: var(--sage-200); color: var(--sage-500); }
+
+/* Tab button (monthly / weekly / recap) */
+.btn-tab {
+  flex: 1;
+  padding: 10px 6px;
+  border-radius: var(--r-md);
+  border: none;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 12px;
+  transition: all 0.25s var(--ease-out);
+  cursor: pointer;
+}
+.btn-tab.active {
+  background: var(--sage-500);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(68,127,108,0.3);
+}
+.btn-tab:not(.active) {
+  background: var(--surface-2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+/* Week button — indeks pekan di weekly view */
+.btn-week {
+  padding: 8px 14px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 12px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+.btn-week.active {
+  background: var(--sage-500);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(68,127,108,0.3);
+}
+
+/* ════════════════════════════════════════════════
+   INPUTS
+   ════════════════════════════════════════════════ */
+.input {
+  width: 100%;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 13px 16px;
+  color: var(--ink);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border 0.2s, box-shadow 0.2s;
+  font-weight: 500;
+}
+.input:focus {
+  border-color: var(--sage-400);
+  box-shadow: 0 0 0 4px rgba(143, 184, 163, 0.18);
+}
+.input::placeholder { color: var(--muted-2); font-weight: 400; }
+.input[type="date"] { color-scheme: light; }
+
+.input-wrap { position: relative; margin-bottom: 14px; }
+.input-wrap label,
+.input-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 6px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ════════════════════════════════════════════════
+   HARI LIBUR — overlay merah di tanggal libur
+   ════════════════════════════════════════════════ */
+.holiday-day {
+  background: var(--danger-soft) !important;
+  border-color: rgba(196, 104, 94, 0.3) !important;
+  cursor: not-allowed !important;
+  opacity: 0.75;
+  position: relative;
+}
+.holiday-day::after {
+  content: '🕌';
+  position: absolute;
+  top: 2px; right: 4px;
+  font-size: 10px;
+}
+
+/* ════════════════════════════════════════════════
+   POP-UP NOTIF HARI LIBUR (modal)
+   ════════════════════════════════════════════════ */
+#modal-holiday-notif {
+  position: fixed; inset: 0;
+  background: rgba(20, 32, 27, 0.55);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  padding: 20px;
+}
+#modal-holiday-notif.show { display: flex; animation: fadeIn 0.2s var(--ease-out); }
+#modal-holiday-notif .modal {
+  background: var(--surface);
+  border-radius: var(--r-xl);
+  padding: 26px 22px;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  animation: popIn 0.3s var(--ease-spring);
+}
+@keyframes popIn {
+  0% { transform: scale(0.9); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ════════════════════════════════════════════════
+   LOGO (login screen)
+   ════════════════════════════════════════════════ */
+.login-logo {
+  text-align: center;
+  margin-bottom: 8px;
+  animation: fadeIn 0.5s var(--ease-out) both;
+}
+
+/* ════════════════════════════════════════════════
+   ROLE COLORS (dipakai di inline style via getRoleColor)
+   Warna utama sudah ada di ROLE_COLOR_MAP di constants.js,
+   tapi kita sediakan helper class kalau-kalau diperlukan.
+   ════════════════════════════════════════════════ */
+.role-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* ════════════════════════════════════════════════
+   BADGE
+   ════════════════════════════════════════════════ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+}
+
+/* ════════════════════════════════════════════════
+   LOGIN SCREEN
+   ════════════════════════════════════════════════ */
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: radial-gradient(circle at 20% 10%, var(--sage-50), var(--bg) 60%);
+}
+.login-card {
+  width: 100%; max-width: 400px;
+  background: var(--surface);
+  border-radius: var(--r-xl);
+  padding: 30px 24px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+  animation: fadeIn 0.5s var(--ease-out) both;
+}
+.login-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.login-role-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+  padding: 4px;
+  margin-bottom: 18px;
+  border: 1px solid var(--border);
+}
+.login-role-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 10px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.25s var(--ease-out);
+}
+.login-role-tab.active {
+  background: var(--surface);
+  color: var(--sage-500);
+  box-shadow: var(--shadow-sm);
+}
+.login-err {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid rgba(196,104,94,0.2);
+  border-radius: var(--r-sm);
+  padding: 10px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+/* ════════════════════════════════════════════════
+   USER CARD (daftar pengguna admin)
+   ════════════════════════════════════════════════ */
+.ucard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  transition: box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+  box-shadow: var(--shadow-sm);
+}
+.ucard:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+
+/* ════════════════════════════════════════════════
+   CALENDAR (grid 6 kolom — kalender bulanan)
+   ════════════════════════════════════════════════ */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 5px;
+}
+.cal-hdr {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--muted);
+  padding: 6px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.cal-day {
+  aspect-ratio: 1;
+  border-radius: var(--r-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  position: relative;
+  padding: 4px;
+  font-family: inherit;
+}
+.cal-day:hover     { background: var(--sage-50); }
+.cal-day.has-d     { background: linear-gradient(160deg, var(--sage-50), var(--surface)); border-color: var(--sage-100); }
+.cal-day.is-today  { border: 2px solid var(--sage-500); font-weight: 800; }
+.cal-day.is-today .cal-day-num { color: var(--sage-500); }
+.cal-day.editing   { background: var(--sage-100); border-color: var(--sage-300); }
+.cal-day.before-join { opacity: 0.4; cursor: not-allowed; }
+.cal-day-num       { font-size: 13px; font-weight: 700; color: var(--ink); }
+.cal-score         { font-size: 9px; font-weight: 800; color: var(--sage-500); margin-top: 1px; }
+.cal-dots          { display: flex; gap: 2px; justify-content: center; margin-top: 2px; }
+.cal-holiday-mark  { position: absolute; top: 2px; right: 4px; font-size: 9px; }
+
+/* ════════════════════════════════════════════════
+   SESSION GRID (H1, H2, H3, J1..J4, S1, S2) — pilih sesi
+   ════════════════════════════════════════════════ */
+.sess-grid, .ses-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.sess, .ses {
+  border-radius: var(--r-md);
+  padding: 14px 8px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  transition: all 0.25s var(--ease-out);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+  font-family: inherit;
+}
+.sess:active, .ses:active { transform: scale(0.96); }
+.sess.on, .ses.on {
+  background: var(--sage-500);
+  border-color: var(--sage-500);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(68,127,108,0.3);
+}
+
+/* ════════════════════════════════════════════════
+   MISC — chip, sb (stat box), week, empty
+   ════════════════════════════════════════════════ */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--sage-50);
+  color: var(--sage-500);
+  border: 1px solid var(--sage-100);
+}
+
+.sb {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px 12px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+.sb-score {
+  font-family: 'Fraunces', serif;
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--sage-500);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.sb-score.big { font-size: 36px; }
+.sb-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+}
+
+.week { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 8px; scrollbar-width: none; }
+.week::-webkit-scrollbar { display: none; }
+
+.empty {
+  text-align: center;
+  padding: 30px 20px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* ════════════════════════════════════════════════
+   RECAP TABLE
+   ════════════════════════════════════════════════ */
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+th {
+  background: var(--sage-50);
+  color: var(--sage-500);
+  padding: 10px 6px;
+  font-weight: 800;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+td {
+  padding: 11px 6px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink-2);
+  font-weight: 600;
+}
+tr:last-child td { border-bottom: none; }
+
+/* ════════════════════════════════════════════════
+   LOADING / TOAST
+   ════════════════════════════════════════════════ */
+#loading {
+  position: fixed; inset: 0;
+  background: rgba(20, 32, 27, 0.55);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+}
+#loading .card {
+  padding: 26px 30px;
+  text-align: center;
+  min-width: 200px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+}
+#loading-msg {
+  font-size: 13px;
+  color: var(--ink-2);
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+#toast {
+  position: fixed;
+  left: 50%; bottom: 100px;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--ink);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0;
+  transition: all 0.3s var(--ease-out);
+  z-index: 9999;
+  pointer-events: none;
+  box-shadow: var(--shadow-lg);
+  max-width: 90vw;
+  white-space: nowrap;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ════════════════════════════════════════════════
+   MODAL (generic)
+   ════════════════════════════════════════════════ */
+.modal-bg {
+  position: fixed; inset: 0;
+  background: rgba(20, 32, 27, 0.55);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 9999;
+  padding: 0;
+}
+.modal-bg[style*="display:flex"],
+.modal-bg[style*="display: flex"] {
+  animation: fadeIn 0.2s var(--ease-out);
+}
+.modal {
+  background: var(--surface);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  padding: 24px 20px 30px;
+  max-width: 480px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  animation: sheetUp 0.35s var(--ease-spring);
+}
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* Desktop: modal jadi centered, bukan sheet */
+@media (min-width: 640px) {
+  .modal-bg { align-items: center; padding: 20px; }
+  .modal { border-radius: var(--r-xl); max-height: 90vh; }
+}
+
+/* ════════════════════════════════════════════════
+   NAVBAR (bottom tab bar)
+   ════════════════════════════════════════════════ */
+.navbar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  padding: 8px 10px 18px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  z-index: 180;
+}
+.navbar-inner {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  max-width: 680px;
+  margin: 0 auto;
+}
+.nav-btn, .nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  padding: 8px 14px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  transition: color 0.2s, background 0.2s;
+  position: relative;
+}
+.nav-btn.active, .nav-item.active {
+  color: var(--sage-500);
+}
+.nav-btn.active::before, .nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px; height: 3px;
+  background: var(--sage-500);
+  border-radius: 0 0 3px 3px;
+  animation: tabSlide 0.3s var(--ease-spring);
+}
+@keyframes tabSlide {
+  from { transform: translate(-50%, -6px); opacity: 0; }
+  to   { transform: translate(-50%, 0); opacity: 1; }
+}
+
+/* ════════════════════════════════════════════════
+   MONTH SELECTOR (admin rekap)
+   ════════════════════════════════════════════════ */
+.month-sel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* ════════════════════════════════════════════════
+   ANIMATIONS
+   ════════════════════════════════════════════════ */
+.fade-in { animation: fadeIn 0.4s var(--ease-out) both; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ════════════════════════════════════════════════
+   PRINT STYLES (ekspor rekapitulasi)
+   — Dulu ini ada 2 blok terpisah; saya gabung.
+   ════════════════════════════════════════════════ */
+@media print {
+  @page { size: A4 portrait; margin: 15mm; }
+  body { padding: 20px; color: #2d3748; font-family: Arial, sans-serif; }
+  .navbar, .header, #toast, #loading, .modal-bg { display: none !important; }
+
+  h1 { color: #5a9b86; font-size: 20px; margin-bottom: 4px; }
+  h2 { color: #4d8fa0; font-size: 15px; margin: 16px 0 8px; }
+  p  { color: #8a97a8; font-size: 13px; margin-bottom: 16px; }
+
+  table { font-size: 11px; }
+  th { background: #5a9b86; color: #fff; padding: 8px 6px; text-align: center; }
+  th.poin { background: #a8874d; }
+  th:nth-child(2), th:nth-child(3) { text-align: left; }
+  td { padding: 7px 6px; border-bottom: 1px solid #e2e8f0; text-align: center; }
+  td:nth-child(2), td:nth-child(3) { text-align: left; }
+  tr:nth-child(even) { background: #f7f9fc; }
+  .tot { background: #e8f4f0 !important; font-weight: bold; }
+}
