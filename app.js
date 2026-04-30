@@ -1,3 +1,28 @@
+// ── iOS SAFARI COMPATIBILITY HELPERS ──
+// Deteksi perangkat iOS (iPhone, iPad, iPod)
+const isIOS = /iP(ad|hone|od)/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+// Helper download Excel yang kompatibel dengan iOS Safari.
+// iOS Safari tidak mendukung atribut 'download' pada anchor tag,
+// sehingga XLSX.writeFile() tidak bekerja. Solusi: buka file sebagai
+// data URI di tab baru (harus dipanggil synchronous dari click event).
+function xlsxDownload(wb, filename) {
+  if (isIOS) {
+    try {
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+      const w = window.open();
+      if (!w) { showToast('Popup diblokir. Izinkan popup untuk mengunduh file.', false); return; }
+      w.location.href = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + wbout;
+      showToast('✅ File Excel siap — simpan dari tab yang terbuka');
+    } catch(e) {
+      showToast('Gagal mengunduh Excel di iOS: ' + e.message, false);
+    }
+  } else {
+    XLSX.writeFile(wb, filename);
+  }
+}
+
 // ── IMPORTS ──
 // Firebase & Firestore wrappers
 import {
@@ -709,8 +734,8 @@ function getSelectedDates(){
     const from = document.getElementById('h-date-from').value;
     const to = document.getElementById('h-date-to').value;
     if(!from) return {err:'Pilih tanggal mulai'};
-    const dateFrom = new Date(from);
-    const dateTo = to ? new Date(to) : dateFrom;
+    const dateFrom = new Date(from + 'T00:00:00');
+    const dateTo = to ? new Date(to + 'T00:00:00') : dateFrom;
     if(dateTo < dateFrom) return {err:'Tanggal akhir harus setelah tanggal mulai'};
     const dates = [];
     for(let d=new Date(dateFrom); d<=dateTo; d.setDate(d.getDate()+1)){
@@ -751,7 +776,8 @@ async function applyHolidays(){
         await loadAtt(user.id);
         
         // Tentukan hari dalam seminggu (0=Ahad/Minggu, 1=Senin, dst)
-        const dateObj = new Date(dateKey);
+        // iOS Safari fix: tambah 'T00:00:00' agar diparsing sebagai local time bukan UTC
+        const dateObj = new Date(dateKey + 'T00:00:00');
         const dayOfWeek = dateObj.getDay(); // 0=Ahad, 1=Senin, ..., 5=Jumat, 6=Sabtu
         // Jumat selalu libur - skip
         if(dayOfWeek === 5){ skipped++; continue; }
@@ -816,7 +842,7 @@ function downloadScheduleTemplate(){
   ws['!cols'] = [{wch:18},{wch:24},...colHeaders.map(()=>({wch:6}))];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Jadwal');
-  XLSX.writeFile(wb, 'template_jadwal_pelajaran.xlsx');
+  xlsxDownload(wb, 'template_jadwal_pelajaran.xlsx');
 }
 window.downloadScheduleTemplate = downloadScheduleTemplate;
 
@@ -977,7 +1003,8 @@ async function saveSchedule(){
       const savePromises = [];
 
       for(const dateKey of holidayDates){
-        const dateObj = new Date(dateKey);
+        // iOS Safari fix: tambah 'T00:00:00' agar diparsing sebagai local time bukan UTC
+        const dateObj = new Date(dateKey + 'T00:00:00');
         const dayOfWeek = dateObj.getDay();
         if(dayOfWeek === 5) continue; // Jumat skip
 
@@ -1288,8 +1315,9 @@ async function saveKeterangan(){
       const user = users.find(u=>u.id===uid);
       await loadAtt(uid);
       const savePromises = [];
-      let cur = new Date(dateFrom);
-      const end = new Date(dateTo);
+      // iOS Safari fix: tambah 'T00:00:00' agar diparsing sebagai local time bukan UTC
+      let cur = new Date(dateFrom + 'T00:00:00');
+      const end = new Date(dateTo + 'T00:00:00');
       while(cur <= end){
         const dow = cur.getDay();
         if(dow !== 5){ // skip Jumat
@@ -1347,7 +1375,11 @@ function printRekap(){
   const bdUser = users.find(u=>getRoles(u).includes('Operator'));
   const kmName = kmUser ? kmUser.name : '___________________';
   const bdName = bdUser ? bdUser.name : '___________________';
-  const tglExport = new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
+  // iOS Safari fix: gunakan format manual sebagai fallback karena locale 'id-ID'
+  // tidak selalu didukung di iOS versi lama
+  const _tglNow = new Date();
+  const _BULAN_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const tglExport = `${_tglNow.getDate()} ${_BULAN_ID[_tglNow.getMonth()]} ${_tglNow.getFullYear()}`;
   const html=`<html><head><title>Rekapitulasi ${MONTHS[m]} ${y}</title>
   <style>@page{size:A4 portrait;margin:15mm}body{font-family:Arial,sans-serif;padding:20px;color:#2d3748}h1{color:#5a9b86;font-size:20px;margin-bottom:4px}
   p{color:#8a97a8;font-size:13px;margin-bottom:16px}
@@ -1397,7 +1429,10 @@ function printRekap(){
     </tr></table>
   </div>
   </body></html>`;
-  const w=window.open("","_blank");w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),400);
+  // iOS Safari fix: window.open harus dipanggil synchronous dari click event
+  const w=window.open("","_blank");
+  if(!w){ showToast('Popup diblokir browser. Izinkan popup untuk halaman ini.', false); return; }
+  w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),400);
 }
 window.printRekap=printRekap;
 
@@ -1735,8 +1770,8 @@ function exportRekapExcel(){
   ws['!ref']=`A1:${col(C_TOTAL)}${totalRows}`;
 
   XLSX.utils.book_append_sheet(wb,ws,`${MONTHS[m]} ${y}`);
-  XLSX.writeFile(wb,`Rekapitulasi_${MONTHS[m]}_${y}.xlsx`);
-  showToast('✅ File Excel berhasil diunduh');
+  xlsxDownload(wb, `Rekapitulasi_${MONTHS[m]}_${y}.xlsx`);
+  if(!isIOS) showToast('✅ File Excel berhasil diunduh');
 }
 window.exportRekapExcel=exportRekapExcel;
 
@@ -2009,7 +2044,9 @@ window.exportUsersPdf=()=>{
   </div>
   <div class="note">⚠️ Dokumen ini bersifat RAHASIA — hanya untuk keperluan internal</div>
   </body></html>`;
+  // iOS Safari fix: window.open harus dipanggil synchronous dari click event
   const w=window.open('','_blank');
+  if(!w){ showToast('Popup diblokir browser. Izinkan popup untuk halaman ini.', false); return; }
   w.document.write(html);w.document.close();w.focus();
   setTimeout(()=>w.print(),500);
 };
@@ -2385,7 +2422,8 @@ function isBeforeJoinDate(uid, y, m, d){
   const u = users.find(x=>x.id===uid);
   if(!u || u.employeeType!=='baru' || !u.joinDate) return false;
   const tgt = new Date(y, m, d);
-  const join = new Date(u.joinDate);
+  // iOS Safari fix: tambah 'T00:00:00' agar joinDate diparsing sebagai local time bukan UTC
+  const join = new Date(u.joinDate + 'T00:00:00');
   // Set join ke awal hari
   join.setHours(0,0,0,0); tgt.setHours(0,0,0,0);
   return tgt < join;
@@ -3476,7 +3514,10 @@ window.__printM=(uid)=>{
   <h1>🕌 Rekap Daftar Hadir Halaqah</h1><p style="color:#8a97a8;font-size:13px">${u?.name} · ${uRolesStr} · ${MONTHS[m]} ${y}</p>`;
   for(let w=1;w<=tw;w++){const wr=wRec(uid,y,m,w);html+=`<h2>Pekan ${w}</h2><table><tr><th>Sesi</th><th>Keterangan</th><th>Hadir</th><th>Jam (×2)</th></tr>${SESSIONS.map(s=>`<tr><td>${s.label}</td><td>${s.desc}</td><td>${wr.totals[s.key]}</td><td>${wr.totals[s.key]*2}</td></tr>`).join('')}<tr class="tot"><td colspan="2">Total Pekan ${w}</td><td colspan="2">${wr.totalScore} jam</td></tr></table>`;}
   html+=`<h2 style="color:#5a9b86">📅 Total Bulanan</h2><table><tr><th>Sesi</th><th>Keterangan</th><th>Hadir</th><th>Jam (×2)</th></tr>${SESSIONS.map(s=>`<tr><td>${s.label}</td><td>${s.desc}</td><td>${monthly.totals[s.key]}</td><td>${monthly.totals[s.key]*2}</td></tr>`).join('')}<tr class="tot"><td colspan="2">GRAND TOTAL</td><td colspan="2">${monthly.totalScore} jam</td></tr></table><div class="sc">${monthly.totalScore}</div><div class="sub">Total Jam ${MONTHS[m]} ${y} — ${td} hari</div></body></html>`;
-  const w=window.open("","_blank");w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),400);
+  // iOS Safari fix: window.open harus dipanggil synchronous dari click event
+  const w=window.open("","_blank");
+  if(!w){ showToast('Popup diblokir browser. Izinkan popup untuk halaman ini.', false); return; }
+  w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),400);
 };
 
 window.__exportMExcel=(uid)=>{
@@ -3509,8 +3550,8 @@ window.__exportMExcel=(uid)=>{
     ws['!cols']=[{wch:8},{wch:34},{wch:14},{wch:12}];
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,`${nama.substring(0,20)}`);
-    XLSX.writeFile(wb,`Rekap_${nama.replace(/[^a-zA-Z0-9]/g,'_')}_${MONTHS[m]}_${y}.xlsx`);
-    showToast('✅ File Excel berhasil diunduh');
+    xlsxDownload(wb, `Rekap_${nama.replace(/[^a-zA-Z0-9]/g,'_')}_${MONTHS[m]}_${y}.xlsx`);
+    if(!isIOS) showToast('✅ File Excel berhasil diunduh');
   } else {
     const csv=rows.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
     const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
