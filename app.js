@@ -1412,8 +1412,8 @@ function printRekap(){
     <table style="width:100%;border:none;border-collapse:collapse"><tr>
       <td style="width:50%;vertical-align:top;padding:0">
         <div style="margin-left:40pt;display:inline-block;text-align:center">
-          <div style="font-size:9pt;color:#333">Kota Tarakan, ${tglExport}</div>
-          <div style="font-size:9pt;font-weight:bold;color:#333;margin-top:2px">Mengetahui,</div>
+          <div style="font-size:9pt;color:#333">&nbsp;</div>
+          <div style="font-size:9pt;font-weight:bold;color:#333;margin-top:2px">Menyetujui,</div>
           <div style="font-size:9pt;color:#333;margin-top:2px">Kepala Madrasah</div>
           <div style="height:56px"></div>
           <div style="border-top:1.5px solid #333;padding-top:4px;font-size:9pt;font-weight:bold;color:#1a5c2a">${kmName}</div>
@@ -1421,8 +1421,8 @@ function printRekap(){
       </td>
       <td style="width:50%;vertical-align:top;padding:0;text-align:right">
         <div style="margin-right:40pt;display:inline-block;text-align:center">
-          <div style="font-size:9pt;color:#333">&nbsp;</div>
-          <div style="font-size:9pt;font-weight:bold;color:#333;margin-top:2px">&nbsp;</div>
+          <div style="font-size:9pt;color:#333">Kota Tarakan, ${tglExport}</div>
+          <div style="font-size:9pt;font-weight:bold;color:#333;margin-top:2px">Mengetahui,</div>
           <div style="font-size:9pt;color:#333;margin-top:2px">Operator</div>
           <div style="height:56px"></div>
           <div style="border-top:1.5px solid #333;padding-top:4px;font-size:9pt;font-weight:bold;color:#1a5c2a">${bdName}</div>
