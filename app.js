@@ -327,31 +327,110 @@ function renderAdminUsers(){
   if(!users.length){
     ul.innerHTML=`<div class="empty"><div style="font-size:52px;margin-bottom:12px">👤</div><div style="font-weight:800;font-size:16px">Belum ada pengguna</div><div style="font-size:13px;margin-top:5px">Tambahkan pengguna baru</div></div>`;return;
   }
-  ul.innerHTML=users.map(u=>{
-    const roles=getRoles(u);const rc=getRoleColor(roles[0]||'');
-    return`<div class="ucard fade-in">
-      <div style="display:flex;align-items:center;gap:12px">
-        <div class="avatar" style="background:linear-gradient(135deg,${rc}aa,${rc})">${u.name[0].toUpperCase()}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:800;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.name}${u.status==='cuti'?'<span style="font-size:10px;background:#fef3c7;color:#d97706;border:1px solid #fde68a;border-radius:8px;padding:2px 6px;font-weight:700;margin-left:6px">🏖️ Cuti</span>':''}${u.employeeType==='baru'?'<span style="font-size:10px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:8px;padding:2px 6px;font-weight:700;margin-left:6px">🆕 Baru</span>':''}</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px;font-weight:600">
-            👤 <span style="color:var(--sage2)">${u.username}</span>
-            &nbsp;🔑 <span id="pw-display-${u.id}" style="color:var(--muted);letter-spacing:1px">••••••</span>
-            <button onclick="window.__togglePwView('${u.id}')" style="background:none;border:none;cursor:pointer;font-size:13px;padding:0 3px;vertical-align:middle" title="Tampilkan password">👁️</button>
-          </div>
-          <div style="margin-top:5px;display:flex;flex-wrap:wrap">${rolesDisplay(u)}</div>
-          ${u.status==='cuti'&&u.cutiReason?`<div style="font-size:11px;color:#d97706;margin-top:3px;font-weight:600">📝 ${u.cutiReason}</div>`:''}${u.employeeType==='baru'&&u.joinDate?`<div style="font-size:11px;color:#2563eb;margin-top:3px;font-weight:600">📅 Bergabung: ${u.joinDate}</div>`:''}
-        </div>
-        <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
-          <button class="btn-icon" title="Lihat Absensi" onclick="window.__viewAtt('${u.id}')">📅</button>
-          <button class="btn-icon" title="Edit" onclick="window.__editUser('${u.id}')">✏️</button>
-          <button class="btn-icon" title="Status Kehadiran" onclick="window.__editStatus('${u.id}')">${u.status==='cuti'?'🏖️':'✅'}</button>
-          <button class="btn-icon" title="Reset Password" onclick="window.__resetPw('${u.id}')">🔑</button>
-          <button class="btn-icon" title="Hapus" onclick="window.__delUser('${u.id}')">🗑️</button>
-        </div>
-      </div></div>`;
-  }).join('');
+  ul.innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">`+
+    users.map(u=>{
+      const roles=getRoles(u);const rc=getRoleColor(roles[0]||'');
+      const isCuti=u.status==='cuti';const isNew=u.employeeType==='baru';
+      const dot=isCuti
+        ?`<div style="position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:#f59e0b;box-shadow:0 0 0 2px #fff"></div>`
+        :isNew?`<div style="position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:#3b82f6;box-shadow:0 0 0 2px #fff"></div>`:'';
+      return`<div onclick="window.__openUserMenu('${u.id}')" style="background:#fff;border-radius:16px;padding:14px 8px 12px;text-align:center;border:1px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.34,1.56,.64,1);box-shadow:0 2px 10px rgba(45,55,72,.06);position:relative;-webkit-tap-highlight-color:transparent" onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(45,55,72,.12)';this.style.borderColor='var(--sage4)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 10px rgba(45,55,72,.06)';this.style.borderColor='var(--border)'">
+        ${dot}
+        <div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,${rc}bb,${rc});display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px;color:#fff;margin:0 auto 9px;box-shadow:0 3px 10px ${rc}55">${u.name[0].toUpperCase()}</div>
+        <div style="font-weight:800;font-size:11.5px;color:var(--text);line-height:1.35;word-break:break-word;padding:0 2px">${u.name}</div>
+        <div style="font-size:9.5px;color:var(--sage2);font-weight:700;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px">${roles[0]||'—'}</div>
+      </div>`;
+    }).join('')+`</div>`;
 }
+
+window.__openUserMenu=function(uid){
+  const u=users.find(x=>x.id===uid);if(!u)return;
+  const roles=getRoles(u);const rc=getRoleColor(roles[0]||'');
+  const isCuti=u.status==='cuti';
+  const CLOSE=`closeModal('modal-user-actions')`;
+
+  // ── Ikon 3D (wrapper div bergradien + SVG putih) ──
+  function ic3d(grad,shadow,svgPath){
+    return`<div style="width:54px;height:54px;border-radius:16px;background:${grad};box-shadow:${shadow},inset 0 1px 0 rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;margin:0 auto 7px;transition:transform .18s cubic-bezier(.34,1.56,.64,1)">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svgPath}</svg>
+    </div>`;
+  }
+
+  const IC={
+    cal: ic3d(
+      'linear-gradient(150deg,#60a5fa 0%,#2563eb 100%)',
+      '0 5px 16px rgba(37,99,235,0.45)',
+      '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'
+    ),
+    edit: ic3d(
+      'linear-gradient(150deg,#fb923c 0%,#ea580c 100%)',
+      '0 5px 16px rgba(234,88,12,0.45)',
+      '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>'
+    ),
+    status: ic3d(
+      'linear-gradient(150deg,#4ade80 0%,#16a34a 100%)',
+      '0 5px 16px rgba(22,163,74,0.45)',
+      '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/>'
+    ),
+    key: ic3d(
+      'linear-gradient(150deg,#fbbf24 0%,#d97706 100%)',
+      '0 5px 16px rgba(217,119,6,0.45)',
+      '<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>'
+    ),
+    trash: ic3d(
+      'linear-gradient(150deg,#94a3b8 0%,#475569 100%)',
+      '0 5px 16px rgba(71,85,105,0.35)',
+      '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>'
+    ),
+  };
+
+  const acts=[
+    {ic:IC.cal,    label:'Absensi',                    fn:`window.__viewAtt('${uid}');${CLOSE}`},
+    {ic:IC.edit,   label:'Edit',                        fn:`window.__editUser('${uid}');${CLOSE}`},
+    {ic:IC.status, label:isCuti?'Aktifkan':'Status',    fn:`window.__editStatus('${uid}');${CLOSE}`},
+    {ic:IC.key,    label:'Reset PW',                    fn:`window.__resetPw('${uid}');${CLOSE}`},
+    {ic:IC.trash,  label:'Hapus',                       fn:`window.__delUser('${uid}');${CLOSE}`},
+  ];
+
+  let modal=document.getElementById('modal-user-actions');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='modal-user-actions';
+    modal.className='modal-bg';
+    modal.style.display='none';
+    modal.addEventListener('click',e=>{if(e.target===modal)closeModal('modal-user-actions');});
+    const inner=document.createElement('div');
+    inner.id='modal-user-actions-inner';
+    inner.className='modal';
+    inner.style.cssText='max-width:320px;padding:0;overflow:hidden';
+    modal.appendChild(inner);
+    document.body.appendChild(modal);
+  }
+
+  document.getElementById('modal-user-actions-inner').innerHTML=`
+    <div style="padding:18px 18px 14px;background:linear-gradient(135deg,var(--sage3),#fff);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+      <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,${rc}bb,${rc});display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:#fff;flex-shrink:0;box-shadow:0 3px 10px ${rc}44">${u.name[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.name}</div>
+        <div style="font-size:11px;color:var(--sage2);font-weight:700;margin-top:1px">${roles.join(' · ')||'—'}</div>
+        ${isCuti?`<div style="font-size:10px;color:#d97706;font-weight:700;margin-top:2px">● Sedang Cuti</div>`:''}
+      </div>
+      <button onclick="${CLOSE}" style="background:none;border:none;padding:6px;cursor:pointer;color:var(--muted);border-radius:8px;flex-shrink:0;font-size:18px;line-height:1">✕</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:20px 16px 18px">
+      ${acts.map(a=>`<button onclick="${a.fn}"
+        style="flex:0 0 calc(33.33% - 6px);background:transparent;border:none;border-radius:14px;padding:12px 6px 10px;display:flex;flex-direction:column;align-items:center;cursor:pointer;transition:all .18s cubic-bezier(.34,1.56,.64,1)"
+        onmouseenter="this.querySelector('div').style.transform='scale(1.1) translateY(-2px)'"
+        onmouseleave="this.querySelector('div').style.transform=''">
+        ${a.ic}
+        <span style="font-size:11px;font-weight:700;color:var(--text2);line-height:1">${a.label}</span>
+      </button>`).join('')}
+    </div>`;
+
+  openModal('modal-user-actions');
+};
+
+
 
 // ── ADMIN: REKAPITULASI BULANAN ──
 function rekapPrevMonth(){
