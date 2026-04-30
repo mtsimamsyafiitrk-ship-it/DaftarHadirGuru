@@ -165,6 +165,7 @@ async function doLogin(){
       if(username!==adminUsername||!validPw){hideLoading();errEl.textContent='Username atau password admin salah.';errEl.style.display='block';return;}
       if(!adminDoc)await saveAdminDoc({pwHash:await hashPw(ADMIN_DEFAULT_PW)});
       currentUser={id:'admin',name:'Administrator',username:'admin',role:'Admin',isAdmin:true};
+      saveSession('admin', 'admin');
       hideLoading();
       showScreen('admin-users');
       renderAdminUsers();
@@ -186,6 +187,7 @@ async function doLogin(){
       document.getElementById('u-role').textContent=rolesText(currentUser);
       document.getElementById('att-month').textContent=MONTHS[cMonth];
       document.getElementById('att-year').textContent=cYear;
+      saveSession('user', currentUser.id);
       showScreen('user-att');
       switchTab('monthly'); // render kalender SETELAH hari libur terisi
       cekNotifikasiPengingat(currentUser.id); // cek notif pengingat dari admin
@@ -202,6 +204,7 @@ async function doLogin(){
 window.doLogin=doLogin;
 
 function doLogout(){
+  clearSession();
   currentUser=null;viewingUser=null;
   document.getElementById('l-user').value='';
   document.getElementById('l-pass').value='';
@@ -1375,8 +1378,7 @@ function printRekap(){
   const bdUser = users.find(u=>getRoles(u).includes('Operator'));
   const kmName = kmUser ? kmUser.name : '___________________';
   const bdName = bdUser ? bdUser.name : '___________________';
-  // iOS Safari fix: gunakan format manual sebagai fallback karena locale 'id-ID'
-  // tidak selalu didukung di iOS versi lama
+  // iOS Safari fix: gunakan format manual sebagai fallback
   const _tglNow = new Date();
   const _BULAN_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   const tglExport = `${_tglNow.getDate()} ${_BULAN_ID[_tglNow.getMonth()]} ${_tglNow.getFullYear()}`;
@@ -2862,8 +2864,14 @@ async function rejectRequest(reqId){
 }
 
 function updateAdminNotifBadge(count){
+  // navbar badges (masih ada di DOM walau tersembunyi)
   ['','2','3','-n'].forEach(s=>{
     const el=document.getElementById('anav-notif-badge'+s);
+    if(el){ el.style.display=count>0?'block':'none'; el.textContent=count>0?count:''; }
+  });
+  // header badges (bell icon di samping tombol Keluar)
+  ['hadm-notif-u','hadm-notif-r','hadm-notif-k','hadm-notif-p'].forEach(id=>{
+    const el=document.getElementById(id);
     if(el){ el.style.display=count>0?'block':'none'; el.textContent=count>0?count:''; }
   });
 }
@@ -3562,12 +3570,89 @@ window.__exportMExcel=(uid)=>{
 };
 
 // ── INIT ──
-(async()=>{
-  try{
+// SESSION KEY & TTL (7 hari)
+const DHG_SESSION_KEY = 'dhg_session_v2';
+const SESSION_TTL_MS  = 7 * 24 * 60 * 60 * 1000;
+
+// Simpan session ke localStorage setelah login berhasil
+function saveSession(type, userId) {
+  try {
+    localStorage.setItem(DHG_SESSION_KEY, JSON.stringify({
+      type, userId, savedAt: Date.now()
+    }));
+  } catch(e) { /* private browsing — graceful fail */ }
+}
+
+// Hapus session saat logout
+function clearSession() {
+  try { localStorage.removeItem(DHG_SESSION_KEY); } catch(e) {}
+}
+
+// Helper: restore session guru (user biasa)
+async function restoreUserSession(found) {
+  currentUser = {...found, isAdmin: false};
+  showLoading('Memuat data absensi...');
+  await loadAtt(currentUser.id);
+  await loadHolidayDates();
+  try { globalSchedule = await getHolidaySchedule(); } catch(e) { globalSchedule = {}; }
+  try { await loadSubstitutionsForMonth(TODAY.getFullYear(), TODAY.getMonth()); } catch(e) {}
+  hideLoading();
+  cYear = TODAY.getFullYear(); cMonth = TODAY.getMonth();
+  cView = 'monthly'; editDay = null; editDayW = null; selWeek = 1;
+  document.getElementById('u-name').textContent  = currentUser.name;
+  document.getElementById('u-role').textContent  = rolesText(currentUser);
+  document.getElementById('att-month').textContent = MONTHS[cMonth];
+  document.getElementById('att-year').textContent  = cYear;
+  showScreen('user-att');
+  switchTab('monthly');
+  cekNotifikasiPengingat(currentUser.id);
+  updateUserNotifBadge(currentUser.id);
+  await loadAccessGrants(currentUser.id);
+  checkAndShowActiveBanners();
+  await cekNotifAkses(currentUser.id);
+  if (currentUser.roles && currentUser.roles.includes('Admin')) checkAdminNotifBadge();
+}
+
+(async () => {
+  try {
     await loadUsers();
-    hideLoading();
-    showScreen('login');
-  }catch(e){
+
+    // ── Coba restore session tersimpan ──────────────────────────────────
+    let restored = false;
+    try {
+      const raw = localStorage.getItem(DHG_SESSION_KEY);
+      if (raw) {
+        const sess = JSON.parse(raw);
+        const expired = !sess.savedAt || (Date.now() - sess.savedAt) > SESSION_TTL_MS;
+        if (!expired) {
+          if (sess.type === 'admin') {
+            // Restore sesi Admin
+            currentUser = {id:'admin', name:'Administrator', username:'admin', role:'Admin', isAdmin:true};
+            hideLoading();
+            showScreen('admin-users');
+            renderAdminUsers();
+            restored = true;
+          } else if (sess.type === 'user' && sess.userId) {
+            // Restore sesi Guru
+            const found = users.find(u => u.id === sess.userId);
+            if (found) {
+              await restoreUserSession(found);
+              restored = true;
+            }
+          }
+        }
+        if (!restored) clearSession(); // expired atau user tidak ditemukan
+      }
+    } catch(e) {
+      clearSession(); // JSON rusak atau localStorage tidak tersedia
+    }
+
+    if (!restored) {
+      hideLoading();
+      showScreen('login');
+    }
+
+  } catch(e) {
     document.getElementById('loading').innerHTML=`
       <div style="text-align:center;padding:30px 20px">
         <div style="font-size:52px;margin-bottom:14px">❌</div>
