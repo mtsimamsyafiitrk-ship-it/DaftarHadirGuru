@@ -44,8 +44,9 @@ input{font-family:inherit}
   border-bottom:1px solid var(--border);box-shadow:0 1px 8px rgba(45,55,72,0.06)}
 .hinner{display:flex;align-items:center;gap:12px;max-width:680px;margin:0 auto}
 .hrow{max-width:680px;margin:8px auto 0;display:flex;align-items:center;gap:10px}
-/* iOS Safari fix: tambah safe-area-inset-bottom agar konten tidak tertutup home bar iPhone */
-.body{max-width:680px;margin:0 auto;padding:16px 14px;padding-bottom:max(90px,calc(70px + env(safe-area-inset-bottom)))}
+/* iOS Safari fix: tambah safe-area-inset-bottom agar konten tidak tertutup home bar iPhone.
+   Navbar kini floating island, padding lebih kecil (80px) sudah cukup. */
+.body{max-width:680px;margin:0 auto;padding:16px 14px;padding-bottom:max(96px,calc(76px + env(safe-area-inset-bottom)))}
 
 /* ── CARDS ── */
 .card{background:var(--card);border-radius:18px;padding:16px;border:1px solid var(--border);margin-bottom:12px;box-shadow:var(--shadow)}
@@ -221,19 +222,273 @@ input{font-family:inherit}
 .modal{background:#fff;border-radius:22px;padding:24px;width:100%;max-width:420px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(45,55,72,0.2)}
 .modal h3{font-family:'Amiri',serif;font-size:19px;font-weight:700;margin-bottom:16px;color:var(--sage2)}
 
-/* ── NAVBAR ── */
-/* iOS Safari fix:
-   1. -webkit-backdrop-filter untuk iOS < 15
-   2. env(safe-area-inset-bottom) agar navbar tidak tertutup home indicator iPhone X ke atas
-      (viewport-fit=cover sudah ada di index.html, jadi env() berfungsi) */
-.navbar{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,0.95);border-top:1px solid var(--border);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);padding:8px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));z-index:100;box-shadow:0 -4px 16px rgba(45,55,72,0.08)}
-.navbar-inner{display:flex;justify-content:space-around;max-width:680px;margin:0 auto}
-.nav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--muted);font-size:11px;font-weight:700;padding:6px 18px;border-radius:12px;transition:all .2s}
-.nav-btn.active{color:var(--sage2);background:var(--sage3)}
-.nav-btn span{font-size:20px}
+/* ── NAVBAR — Glass Floating Island ──
+   iOS Safari fixes:
+   · -webkit-backdrop-filter untuk iOS < 15
+   · env(safe-area-inset-bottom) untuk home indicator iPhone X+
+   · viewport-fit=cover sudah ada di index.html
+   Design: navbar transparan, konten ada di .navbar-inner yang berbentuk pill kaca mengambang */
+.navbar{
+  position:fixed;bottom:0;left:0;right:0;
+  padding:8px 16px;padding-bottom:max(14px,env(safe-area-inset-bottom));
+  z-index:100;
+  background:transparent;
+  pointer-events:none; /* klik bisa tembus ke konten di celah */
+}
+.navbar-inner{
+  display:flex;justify-content:space-around;align-items:center;
+  max-width:440px;margin:0 auto;
+  background:rgba(255,255,255,0.80);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  backdrop-filter:blur(24px) saturate(180%);
+  border-radius:28px;
+  padding:5px;
+  border:1px solid rgba(255,255,255,0.65);
+  box-shadow:
+    0 8px 32px rgba(45,55,72,0.13),
+    0 2px 6px rgba(45,55,72,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.85);
+  pointer-events:auto;
+}
+
+/* Nav button — micro-animated spring */
+.nav-btn{
+  display:flex;flex-direction:column;align-items:center;
+  gap:2px;
+  background:none;border:none;
+  color:var(--muted);
+  padding:8px 10px;
+  border-radius:22px;
+  transition:all .25s cubic-bezier(.34,1.56,.64,1);
+  position:relative;
+  min-width:52px;
+  -webkit-tap-highlight-color:transparent;
+  outline:none;
+}
+.nav-btn:active{
+  transform:scale(.87);
+  transition:transform .08s ease;
+}
+.nav-btn.active{
+  background:linear-gradient(145deg,rgba(127,179,160,.22),rgba(90,155,134,.13));
+  color:var(--sage2);
+}
+
+/* Icon container — lifts on active */
+.nav-icon{
+  width:24px;height:24px;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.nav-btn.active .nav-icon{
+  transform:translateY(-2px) scale(1.12);
+}
+.nav-icon svg{
+  transition:stroke .2s, stroke-width .2s;
+}
+.nav-btn.active .nav-icon svg{
+  stroke:var(--sage2);
+  stroke-width:2.5;
+}
+
+/* Label — subtly fades in weight on active */
+.nav-label{
+  font-size:9px;font-weight:700;line-height:1;
+  transition:all .2s;
+  opacity:.55;
+  letter-spacing:.2px;
+  white-space:nowrap;
+}
+.nav-btn.active .nav-label{
+  opacity:1;font-weight:800;color:var(--sage2);
+}
+
+/* Login-role tabs also use nav-icon SVGs */
+.login-role-tab .nav-icon{
+  width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-right:3px;
+}
 
 /* ── MONTH SELECTOR ── */
 .month-nav{display:flex;align-items:center;justify-content:space-between;background:var(--card);border-radius:16px;padding:12px 16px;border:1px solid var(--border);margin-bottom:12px;box-shadow:var(--shadow)}
+
+/* ═══════════════════════════════════════════
+   MICRO ANIMATIONS — Global Enhancement
+   ═══════════════════════════════════════════ */
+
+/* Screen transition: screens fade+slide in softly */
+.screen.active{
+  animation:screenIn .25s cubic-bezier(.4,0,.2,1) both;
+}
+@keyframes screenIn{
+  from{opacity:0;transform:translateY(6px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* Button spring press (all .btn) */
+.btn:active{
+  transform:scale(.95)!important;
+  transition:transform .08s ease!important;
+}
+.btn-nav:active,.btn-icon:active,.btn-ghost:active{
+  transform:scale(.90);
+  transition:transform .08s ease;
+}
+
+/* Card hover: subtle spring lift */
+.card{transition:box-shadow .2s,transform .2s cubic-bezier(.34,1.56,.64,1)}
+.ucard{transition:box-shadow .2s,transform .2s cubic-bezier(.34,1.56,.64,1),border-color .2s}
+
+/* Calendar day pop tap */
+.cal-day:active{
+  transform:scale(.9);
+  transition:transform .08s ease;
+}
+.sess-btn:active{
+  transform:scale(.92);
+  transition:transform .08s ease;
+}
+
+/* Modal entrance: scale+fade */
+.modal-bg .modal{
+  animation:modalIn .25s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes modalIn{
+  from{opacity:0;transform:scale(.88) translateY(16px)}
+  to{opacity:1;transform:scale(1) translateY(0)}
+}
+.holiday-notif-box{
+  animation:popIn .3s cubic-bezier(.34,1.56,.64,1) both!important;
+}
+
+/* Toast: slide up from bottom */
+.toast{
+  transition:opacity .3s cubic-bezier(.4,0,.2,1),transform .3s cubic-bezier(.34,1.56,.64,1);
+  transform:translateX(-50%) translateY(12px);
+  opacity:0;
+}
+.toast.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+
+/* Loading overlay: modern pulse spinner */
+.spinner{
+  width:40px;height:40px;
+  border:3px solid transparent;
+  border-top-color:var(--sage2);
+  border-right-color:var(--sage4);
+  border-radius:50%;
+  animation:spin .7s cubic-bezier(.4,0,.6,1) infinite;
+}
+
+/* Header: add padding-top safe area for notch */
+.header{
+  padding-top:max(14px,calc(10px + env(safe-area-inset-top)));
+}
+
+/* Glass header variant */
+.header{
+  background:rgba(240,244,248,0.85);
+  -webkit-backdrop-filter:blur(24px) saturate(200%);
+  backdrop-filter:blur(24px) saturate(200%);
+  border-bottom:1px solid rgba(255,255,255,0.5);
+  box-shadow:0 1px 0 rgba(45,55,72,0.06),0 2px 16px rgba(45,55,72,0.05);
+}
+
+/* Glass card variant */
+.card-glass{
+  background:rgba(255,255,255,0.70);
+  -webkit-backdrop-filter:blur(16px) saturate(180%);
+  backdrop-filter:blur(16px) saturate(180%);
+  border:1px solid rgba(255,255,255,0.6);
+  box-shadow:
+    0 4px 24px rgba(45,55,72,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.8);
+}
+
+/* Btn-tab active: glass pill */
+.btn-tab.active{
+  background:rgba(90,155,134,0.15);
+  -webkit-backdrop-filter:blur(8px);
+  backdrop-filter:blur(8px);
+  border:1.5px solid rgba(90,155,134,0.3)!important;
+  color:var(--sage2)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.6),0 2px 8px rgba(90,155,134,0.15);
+}
+
+/* Session buttons: glass active state */
+.sess-btn{
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+  transition:all .2s cubic-bezier(.34,1.56,.64,1),transform .08s ease;
+}
+
+/* Smooth scroll for body */
+.body{
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+}
+
+/* Day card header: smooth open */
+.day-body{
+  transition:all .2s cubic-bezier(.4,0,.2,1);
+}
+
+/* Login card: glass morphism */
+.login-card{
+  background:rgba(255,255,255,0.88);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  backdrop-filter:blur(20px) saturate(180%);
+  border:1px solid rgba(255,255,255,0.7);
+  box-shadow:0 8px 40px rgba(45,55,72,0.12),inset 0 1px 0 rgba(255,255,255,0.9);
+}
+
+/* Login-wrap: subtle animated gradient background */
+.login-wrap{
+  background:
+    radial-gradient(ellipse 70% 50% at 20% 20%,rgba(127,179,160,.18),transparent),
+    radial-gradient(ellipse 60% 50% at 80% 80%,rgba(107,168,184,.15),transparent),
+    var(--bg);
+}
+
+/* Input focus: glass-feel ring */
+.input:focus{
+  border-color:var(--sage);
+  box-shadow:0 0 0 3px rgba(90,155,134,.12),0 1px 4px rgba(90,155,134,.1);
+  background:rgba(255,255,255,0.98);
+}
+
+/* Recap table rows: hover transition */
+.recap-table tr{transition:background .15s}
+.recap-table tr:hover td{
+  background:rgba(127,179,160,.08)!important;
+}
+
+/* Score badge: glass treatment */
+.score-badge{
+  background:rgba(232,244,240,0.7);
+  -webkit-backdrop-filter:blur(8px);
+  backdrop-filter:blur(8px);
+  border:1px solid rgba(127,179,160,.2);
+}
+
+/* Month nav: glass */
+.month-nav{
+  background:rgba(255,255,255,0.75);
+  -webkit-backdrop-filter:blur(16px);
+  backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,0.6);
+  box-shadow:0 2px 12px rgba(45,55,72,.06),inset 0 1px 0 rgba(255,255,255,.8);
+}
+
+/* Modal: glass */
+.modal{
+  background:rgba(255,255,255,0.92);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid rgba(255,255,255,0.7);
+  box-shadow:0 20px 60px rgba(45,55,72,.16),inset 0 1px 0 rgba(255,255,255,.9);
+}
 
 
 /* ===== next <style> block ===== */
