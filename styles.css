@@ -254,14 +254,14 @@ input{font-family:inherit}
 /* Nav button — micro-animated spring */
 .nav-btn{
   display:flex;flex-direction:column;align-items:center;
-  gap:2px;
+  gap:0;
   background:none;border:none;
   color:var(--muted);
-  padding:8px 10px;
+  padding:9px 14px;
   border-radius:22px;
   transition:all .25s cubic-bezier(.34,1.56,.64,1);
   position:relative;
-  min-width:52px;
+  min-width:0;
   -webkit-tap-highlight-color:transparent;
   outline:none;
 }
@@ -281,7 +281,7 @@ input{font-family:inherit}
   transition:transform .3s cubic-bezier(.34,1.56,.64,1);
 }
 .nav-btn.active .nav-icon{
-  transform:translateY(-2px) scale(1.12);
+  transform:scale(1.18);
 }
 .nav-icon svg{
   transition:stroke .2s, stroke-width .2s;
@@ -292,16 +292,8 @@ input{font-family:inherit}
 }
 
 /* Label — subtly fades in weight on active */
-.nav-label{
-  font-size:9px;font-weight:700;line-height:1;
-  transition:all .2s;
-  opacity:.55;
-  letter-spacing:.2px;
-  white-space:nowrap;
-}
-.nav-btn.active .nav-label{
-  opacity:1;font-weight:800;color:var(--sage2);
-}
+.nav-label{display:none}
+.nav-btn.active .nav-label{display:none}
 
 /* Login-role tabs also use nav-icon SVGs */
 .login-role-tab .nav-icon{
@@ -311,17 +303,18 @@ input{font-family:inherit}
 /* ── MONTH SELECTOR ── */
 .month-nav{display:flex;align-items:center;justify-content:space-between;background:var(--card);border-radius:16px;padding:12px 16px;border:1px solid var(--border);margin-bottom:12px;box-shadow:var(--shadow)}
 
-/* ═══════════════════════════════════════════
+/* ============================================================
    MICRO ANIMATIONS — Global Enhancement
-   ═══════════════════════════════════════════ */
+   ============================================================ */
 
-/* Screen transition: screens fade+slide in softly */
+/* Screen transition: HANYA opacity (bukan transform) agar position:fixed
+   di dalam .screen.active tidak berubah jadi position:absolute di browser desktop */
 .screen.active{
-  animation:screenIn .25s cubic-bezier(.4,0,.2,1) both;
+  animation:screenIn .22s cubic-bezier(.4,0,.2,1) both;
 }
 @keyframes screenIn{
-  from{opacity:0;transform:translateY(6px)}
-  to{opacity:1;transform:translateY(0)}
+  from{opacity:0}
+  to{opacity:1}
 }
 
 /* Button spring press (all .btn) */
@@ -416,7 +409,7 @@ input{font-family:inherit}
   box-shadow:inset 0 1px 0 rgba(255,255,255,0.6),0 2px 8px rgba(90,155,134,0.15);
 }
 
-/* Session buttons: glass active state */
+/* Session buttons */
 .sess-btn{
   backdrop-filter:none;
   -webkit-backdrop-filter:none;
@@ -440,7 +433,7 @@ input{font-family:inherit}
   -webkit-backdrop-filter:blur(20px) saturate(180%);
   backdrop-filter:blur(20px) saturate(180%);
   border:1px solid rgba(255,255,255,0.7);
-  box-shadow:0 8px 40px rgba(45,55,72,0.12),inset 0 1px 0 rgba(255,255,255,0.9);
+  box-shadow:0 8px 40px rgba(45,55,72,0.12),inset 0 1px 0 rgba(255,255,255,.9);
 }
 
 /* Login-wrap: subtle animated gradient background */
@@ -503,10 +496,9 @@ input{font-family:inherit}
   td:nth-child(2),td:nth-child(3){text-align:left}
   tr:nth-child(even){background:#f7f9fc}
   .tot{background:#e8f4f0!important;font-weight:bold}
-  
+
 
 /* ===== next <style> block ===== */
-
 
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Times New Roman',serif;padding:20px;color:#1a1a1a;font-size:11pt}
@@ -527,7 +519,7 @@ input{font-family:inherit}
     .ttd-name{font-weight:bold;text-decoration:underline;margin-top:50px}
     .note{font-size:9pt;color:#888;text-align:center;margin-top:16px}
     @media print{body{padding:10px}}
-  
+
 
 /* ===== next <style> block ===== */
 
