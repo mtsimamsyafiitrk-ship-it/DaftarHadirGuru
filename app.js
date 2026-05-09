@@ -118,10 +118,8 @@ function wRec(uid,y,m,wk){
     const dateKey=dk(y,m,d);
     const dd=gdd(uid,y,m,d);SESSIONS.forEach(s=>{if(dd[s.key])tots[s.key]++;});ts+=scDay(dd);
     // Jika pengganti terjadwal di sesi yang sama → hitung ekstra (2 kelas sekaligus)
-    const dow=new Date(y,m,d).getDay();
-    const subSched=getUserDaySchedule(uid,dow);
     getSubstitutionsAsSubstitute(dateKey,uid).forEach(sub=>{
-      sub.sessions.forEach(sk=>{if(subSched&&subSched[sk]){tots[sk]++;ts+=2;}});
+      (sub.substituteScheduledSessions||[]).forEach(sk=>{tots[sk]++;ts+=2;});
     });
   });
   return{totals:tots,totalScore:ts,days};
@@ -133,10 +131,8 @@ function mRec(uid,y,m){
     const dateKey=dk(y,m,d);
     const dd=gdd(uid,y,m,d);SESSIONS.forEach(s=>{if(dd[s.key])tots[s.key]++;});ts+=scDay(dd);
     // Jika pengganti terjadwal di sesi yang sama → hitung ekstra (2 kelas sekaligus)
-    const dow=new Date(y,m,d).getDay();
-    const subSched=getUserDaySchedule(uid,dow);
     getSubstitutionsAsSubstitute(dateKey,uid).forEach(sub=>{
-      sub.sessions.forEach(sk=>{if(subSched&&subSched[sk]){tots[sk]++;ts+=2;}});
+      (sub.substituteScheduledSessions||[]).forEach(sk=>{tots[sk]++;ts+=2;});
     });
   }
   return{totals:tots,totalScore:ts};
@@ -2343,6 +2339,8 @@ function renderMonthlyFor(uid,targetId,canEdit){
         style="border-color:${takenBySub?'#fbbf24':disabled?'#e2e8f0':a?s.color:'var(--border)'};background:${takenBySub?'#fef9c3':disabled?'#f1f5f9':a?s.color+'22':'var(--bg2)'};color:${takenBySub?'#92400e':disabled?'#cbd5e1':a?s.color:'var(--muted)'};cursor:${disabled?'not-allowed':'pointer'};opacity:${disabled?0.75:1}">
         <div class="s-icon">${takenBySub?'👤':disabled?'🚫':a?'✅':'⬜'}</div><div style="font-weight:800;font-size:11px">${s.icon}${s.label}</div><div class="s-desc">${disabled?disabledReason:s.desc}</div></button>`;}).join('');
     const sc=scDay(dd),cnt=cntDay(dd);
+    let extraScM=0;outgoingSubsM.forEach(sub=>{extraScM+=(sub.substituteScheduledSessions||[]).length*2;});
+    const totalScM=sc+extraScM,totalCntM=cnt+(extraScM/2);
     const subInTagM = incomingSubM
       ? `<div style="padding:8px 12px;background:#fef9c3;border:1.5px solid #fbbf24;border-radius:10px;font-size:12px;font-weight:700;color:#92400e;margin-bottom:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span>👤 ${incomingSubM.substituteName} mengisi sebagai pengganti Anda (${incomingSubM.sessions.join(', ')})</span>
@@ -2362,8 +2360,8 @@ function renderMonthlyFor(uid,targetId,canEdit){
       ${subInTagM}${subOutTagsM}${noScheduleWarning}<div class="sess-grid">${btns}</div>${subBtnM}
       <div style="margin-top:14px;text-align:center;background:var(--sage3);border:1px solid var(--sage4);border-radius:14px;padding:12px">
         <span style="color:var(--muted);font-size:13px">Skor hari ini: </span>
-        <span style="font-weight:900;font-size:28px;color:var(--sage2);font-family:'Amiri',serif">${sc}</span>
-        <span style="color:var(--muted);font-size:12px"> jam (${cnt} sesi × 2)</span></div></div>`;
+        <span style="font-weight:900;font-size:28px;color:var(--sage2);font-family:'Amiri',serif">${totalScM}</span>
+        <span style="color:var(--muted);font-size:12px"> jam (${totalCntM} sesi × 2)</span></div></div>`;
   }
   document.getElementById(targetId).innerHTML=`
     ${monthStatusBar}<div class="legend">${legend}</div>
@@ -2390,6 +2388,10 @@ function renderWeeklyFor(uid,targetId,canEdit){
     const isHoliday=isHolidayDate(y,m,d);
     const isBeforeJoin=canEdit&&isBeforeJoinDate(uid,y,m,d);
     const chips=SESSIONS.filter(s=>dd[s.key]).map(s=>`<span class="chip" style="background:${s.color}18;border:1px solid ${s.color}44;color:${s.color};font-size:10px;padding:2px 8px">${s.key}</span>`).join('');
+    const dateKeyCard=dk(y,m,d);
+    const isUserViewCard=canEdit&&currentUser&&uid===currentUser.id&&!currentUser.isAdmin;
+    let extraScCard=0;
+    if(isUserViewCard){getSubstitutionsAsSubstitute(dateKeyCard,uid).forEach(sub=>{extraScCard+=(sub.substituteScheduledSessions||[]).length*2;});}
     let body='';
     if(isE&&!isHoliday){
       const isUserView = currentUser && uid===currentUser.id && !currentUser.isAdmin;
@@ -2449,7 +2451,7 @@ function renderWeeklyFor(uid,targetId,canEdit){
           <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">${noScheduleTag||(isHoliday&&cnt===0?`<span style="font-size:11px;color:#dc2626;font-weight:600">Libur — diisi otomatis admin</span>`:cnt===0?`<span style="font-size:11px;color:var(--muted);font-weight:600">Belum diisi</span>`:chips)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
-          <div style="font-weight:900;font-size:24px;color:var(--sage2);font-family:'Amiri',serif">${sc}</div>
+          <div style="font-weight:900;font-size:24px;color:var(--sage2);font-family:'Amiri',serif">${sc+extraScCard}</div>
           <div style="font-size:10px;color:var(--muted);font-weight:600">jam</div>
         </div>
       </div>${body}</div>`;
@@ -3257,12 +3259,17 @@ window.__confirmSubstitute = async(dateKey, targetUid, targetName) => {
   try{
     const [yStr,mStr,dStr] = dateKey.split('-');
     const y=parseInt(yStr), m=parseInt(mStr)-1, d=parseInt(dStr);
+    // Deteksi sesi yang juga ada di jadwal pengganti sendiri (saat konfirmasi, schedule pasti sudah ter-load)
+    const dow=new Date(y,m,d).getDay();
+    const subSchDay=getUserDaySchedule(currentUser.id,dow);
+    const substituteScheduledSessions=selectedSessions.filter(sk=>subSchDay&&subSchDay[sk]);
     // Simpan substitusi ke Firestore
     const subData = {
       substituteUid: currentUser.id,
       substituteName: currentUser.name,
       targetUid, targetName,
       sessions: selectedSessions,
+      substituteScheduledSessions,
       dateKey, timestamp: Date.now()
     };
     await saveSubstitution(dateKey, targetUid, subData);
