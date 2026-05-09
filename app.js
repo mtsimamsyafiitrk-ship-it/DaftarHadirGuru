@@ -115,12 +115,9 @@ function wRec(uid,y,m,wk){
   const tots=SESSIONS.reduce((a,s)=>({...a,[s.key]:0}),{});
   let ts=0;days.forEach(d=>{
     if(isBeforeJoinDate(uid,y,m,d))return; // skip hari sebelum bergabung
-    const dateKey=dk(y,m,d);
     const dd=gdd(uid,y,m,d);SESSIONS.forEach(s=>{if(dd[s.key])tots[s.key]++;});ts+=scDay(dd);
-    // Jika pengganti terjadwal di sesi yang sama → hitung ekstra (2 kelas sekaligus)
-    getSubstitutionsAsSubstitute(dateKey,uid).forEach(sub=>{
-      (sub.substituteScheduledSessions||[]).forEach(sk=>{tots[sk]++;ts+=2;});
-    });
+    // Sesi double-duty (milik sendiri + penggantian) dihitung ekstra
+    (dd._substituteExtra||[]).forEach(sk=>{tots[sk]++;ts+=2;});
   });
   return{totals:tots,totalScore:ts,days};
 }
@@ -128,12 +125,9 @@ function mRec(uid,y,m){
   const t=dim(y,m),tots=SESSIONS.reduce((a,s)=>({...a,[s.key]:0}),{});
   let ts=0;for(let d=1;d<=t;d++){
     if(isBeforeJoinDate(uid,y,m,d))continue; // skip hari sebelum bergabung
-    const dateKey=dk(y,m,d);
     const dd=gdd(uid,y,m,d);SESSIONS.forEach(s=>{if(dd[s.key])tots[s.key]++;});ts+=scDay(dd);
-    // Jika pengganti terjadwal di sesi yang sama → hitung ekstra (2 kelas sekaligus)
-    getSubstitutionsAsSubstitute(dateKey,uid).forEach(sub=>{
-      (sub.substituteScheduledSessions||[]).forEach(sk=>{tots[sk]++;ts+=2;});
-    });
+    // Sesi double-duty (milik sendiri + penggantian) dihitung ekstra
+    (dd._substituteExtra||[]).forEach(sk=>{tots[sk]++;ts+=2;});
   }
   return{totals:tots,totalScore:ts};
 }
@@ -2339,8 +2333,8 @@ function renderMonthlyFor(uid,targetId,canEdit){
         style="border-color:${takenBySub?'#fbbf24':disabled?'#e2e8f0':a?s.color:'var(--border)'};background:${takenBySub?'#fef9c3':disabled?'#f1f5f9':a?s.color+'22':'var(--bg2)'};color:${takenBySub?'#92400e':disabled?'#cbd5e1':a?s.color:'var(--muted)'};cursor:${disabled?'not-allowed':'pointer'};opacity:${disabled?0.75:1}">
         <div class="s-icon">${takenBySub?'👤':disabled?'🚫':a?'✅':'⬜'}</div><div style="font-weight:800;font-size:11px">${s.icon}${s.label}</div><div class="s-desc">${disabled?disabledReason:s.desc}</div></button>`;}).join('');
     const sc=scDay(dd),cnt=cntDay(dd);
-    let extraScM=0;outgoingSubsM.forEach(sub=>{extraScM+=(sub.substituteScheduledSessions||[]).length*2;});
-    const totalScM=sc+extraScM,totalCntM=cnt+(extraScM/2);
+    const extraCntM=(dd._substituteExtra||[]).length;
+    const totalScM=sc+extraCntM*2,totalCntM=cnt+extraCntM;
     const subInTagM = incomingSubM
       ? `<div style="padding:8px 12px;background:#fef9c3;border:1.5px solid #fbbf24;border-radius:10px;font-size:12px;font-weight:700;color:#92400e;margin-bottom:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span>👤 ${incomingSubM.substituteName} mengisi sebagai pengganti Anda (${incomingSubM.sessions.join(', ')})</span>
@@ -2388,10 +2382,7 @@ function renderWeeklyFor(uid,targetId,canEdit){
     const isHoliday=isHolidayDate(y,m,d);
     const isBeforeJoin=canEdit&&isBeforeJoinDate(uid,y,m,d);
     const chips=SESSIONS.filter(s=>dd[s.key]).map(s=>`<span class="chip" style="background:${s.color}18;border:1px solid ${s.color}44;color:${s.color};font-size:10px;padding:2px 8px">${s.key}</span>`).join('');
-    const dateKeyCard=dk(y,m,d);
-    const isUserViewCard=canEdit&&currentUser&&uid===currentUser.id&&!currentUser.isAdmin;
-    let extraScCard=0;
-    if(isUserViewCard){getSubstitutionsAsSubstitute(dateKeyCard,uid).forEach(sub=>{extraScCard+=(sub.substituteScheduledSessions||[]).length*2;});}
+    const extraScCard=(dd._substituteExtra||[]).length*2;
     let body='';
     if(isE&&!isHoliday){
       const isUserView = currentUser && uid===currentUser.id && !currentUser.isAdmin;
@@ -3257,27 +3248,27 @@ window.__confirmSubstitute = async(dateKey, targetUid, targetName) => {
   document.getElementById('modal-substitute').style.display='none';
   showLoading('Menyimpan...');
   try{
-    const [yStr,mStr,dStr] = dateKey.split('-');
-    const y=parseInt(yStr), m=parseInt(mStr)-1, d=parseInt(dStr);
-    // Deteksi sesi yang juga ada di jadwal pengganti sendiri (saat konfirmasi, schedule pasti sudah ter-load)
-    const dow=new Date(y,m,d).getDay();
-    const subSchDay=getUserDaySchedule(currentUser.id,dow);
-    const substituteScheduledSessions=selectedSessions.filter(sk=>subSchDay&&subSchDay[sk]);
     // Simpan substitusi ke Firestore
     const subData = {
       substituteUid: currentUser.id,
       substituteName: currentUser.name,
       targetUid, targetName,
       sessions: selectedSessions,
-      substituteScheduledSessions,
       dateKey, timestamp: Date.now()
     };
     await saveSubstitution(dateKey, targetUid, subData);
-    // Simpan data absensi untuk pengganti (isi sesi terpilih sebagai attendance)
+    // Update attendance pengganti
     if(!localDb[currentUser.id]) localDb[currentUser.id] = {};
     const existing = localDb[currentUser.id][dateKey] || emptyDay();
     const updated = {...existing};
+    // Sesi yang sudah diisi sendiri sebelum penggantian → hitung 2x (double-duty)
+    const ownBefore = selectedSessions.filter(sk => existing[sk] === true);
     selectedSessions.forEach(sk=>{ updated[sk]=true; });
+    if(ownBefore.length > 0){
+      const extra = Array.isArray(updated._substituteExtra) ? [...updated._substituteExtra] : [];
+      ownBefore.forEach(sk=>{ if(!extra.includes(sk)) extra.push(sk); });
+      updated._substituteExtra = extra;
+    }
     localDb[currentUser.id][dateKey] = updated;
     await saveAtt(currentUser.id, dateKey, updated);
     hideLoading();
@@ -3295,11 +3286,21 @@ window.__cancelSubstitute = async(dateKey, targetUid) => {
   try{
     const sub = getSubstitution(dateKey, targetUid);
     if(sub){
-      // Hapus sesi yang diisi sebagai pengganti dari attendance pengganti
       const subUid = sub.substituteUid;
       if(localDb[subUid] && localDb[subUid][dateKey]){
         const updated = {...localDb[subUid][dateKey]};
-        sub.sessions.forEach(sk=>{ updated[sk]=false; });
+        const extra = Array.isArray(updated._substituteExtra) ? [...updated._substituteExtra] : [];
+        sub.sessions.forEach(sk=>{
+          if(extra.includes(sk)){
+            // Sesi milik sendiri + penggantian → tetap true, hapus dari extra saja
+          } else {
+            // Hanya dari penggantian → hapus
+            updated[sk]=false;
+          }
+        });
+        // Hapus sesi yang dibatalkan dari _substituteExtra
+        updated._substituteExtra = extra.filter(sk=>!sub.sessions.includes(sk));
+        if(!updated._substituteExtra.length) delete updated._substituteExtra;
         localDb[subUid][dateKey] = updated;
         await saveAtt(subUid, dateKey, updated);
       }
