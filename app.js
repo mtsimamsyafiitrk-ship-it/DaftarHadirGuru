@@ -117,9 +117,11 @@ function wRec(uid,y,m,wk){
     if(isBeforeJoinDate(uid,y,m,d))return; // skip hari sebelum bergabung
     const dateKey=dk(y,m,d);
     const dd=gdd(uid,y,m,d);SESSIONS.forEach(s=>{if(dd[s.key])tots[s.key]++;});ts+=scDay(dd);
-    // Sesi penggantian yang sudah dimiliki pengganti sendiri dihitung ekstra (2 sesi = 2 kali mengajar)
+    // Jika pengganti terjadwal di sesi yang sama → hitung ekstra (2 kelas sekaligus)
+    const dow=new Date(y,m,d).getDay();
+    const subSched=getUserDaySchedule(uid,dow);
     getSubstitutionsAsSubstitute(dateKey,uid).forEach(sub=>{
-      (sub.substituteOwnSessions||[]).forEach(sk=>{tots[sk]++;ts+=2;});
+      sub.sessions.forEach(sk=>{if(subSched&&subSched[sk]){tots[sk]++;ts+=2;}});
     });
   });
   return{totals:tots,totalScore:ts,days};
@@ -130,9 +132,11 @@ function mRec(uid,y,m){
     if(isBeforeJoinDate(uid,y,m,d))continue; // skip hari sebelum bergabung
     const dateKey=dk(y,m,d);
     const dd=gdd(uid,y,m,d);SESSIONS.forEach(s=>{if(dd[s.key])tots[s.key]++;});ts+=scDay(dd);
-    // Sesi penggantian yang sudah dimiliki pengganti sendiri dihitung ekstra (2 sesi = 2 kali mengajar)
+    // Jika pengganti terjadwal di sesi yang sama → hitung ekstra (2 kelas sekaligus)
+    const dow=new Date(y,m,d).getDay();
+    const subSched=getUserDaySchedule(uid,dow);
     getSubstitutionsAsSubstitute(dateKey,uid).forEach(sub=>{
-      (sub.substituteOwnSessions||[]).forEach(sk=>{tots[sk]++;ts+=2;});
+      sub.sessions.forEach(sk=>{if(subSched&&subSched[sk]){tots[sk]++;ts+=2;}});
     });
   }
   return{totals:tots,totalScore:ts};
@@ -3253,22 +3257,18 @@ window.__confirmSubstitute = async(dateKey, targetUid, targetName) => {
   try{
     const [yStr,mStr,dStr] = dateKey.split('-');
     const y=parseInt(yStr), m=parseInt(mStr)-1, d=parseInt(dStr);
-    // Cek sesi yang sudah dimiliki pengganti sendiri (sebelum penggantian dicatat)
-    if(!localDb[currentUser.id]) localDb[currentUser.id] = {};
-    const existing = localDb[currentUser.id][dateKey] || emptyDay();
-    // Sesi yang sudah true di jadwal pengganti → akan dihitung 2x di rekap
-    const substituteOwnSessions = selectedSessions.filter(sk => existing[sk] === true);
     // Simpan substitusi ke Firestore
     const subData = {
       substituteUid: currentUser.id,
       substituteName: currentUser.name,
       targetUid, targetName,
       sessions: selectedSessions,
-      substituteOwnSessions,
       dateKey, timestamp: Date.now()
     };
     await saveSubstitution(dateKey, targetUid, subData);
     // Simpan data absensi untuk pengganti (isi sesi terpilih sebagai attendance)
+    if(!localDb[currentUser.id]) localDb[currentUser.id] = {};
+    const existing = localDb[currentUser.id][dateKey] || emptyDay();
     const updated = {...existing};
     selectedSessions.forEach(sk=>{ updated[sk]=true; });
     localDb[currentUser.id][dateKey] = updated;
