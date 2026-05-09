@@ -3261,12 +3261,14 @@ window.__confirmSubstitute = async(dateKey, targetUid, targetName) => {
     if(!localDb[currentUser.id]) localDb[currentUser.id] = {};
     const existing = localDb[currentUser.id][dateKey] || emptyDay();
     const updated = {...existing};
-    // Sesi yang sudah diisi sendiri sebelum penggantian → hitung 2x (double-duty)
-    const ownBefore = selectedSessions.filter(sk => existing[sk] === true);
+    // Sesi yang ada di jadwal sendiri → hitung 2x (double-duty: jadwal sendiri + pengganti)
+    const [yStr,mStr,dStr] = dateKey.split('-');
+    const dow = new Date(parseInt(yStr), parseInt(mStr)-1, parseInt(dStr)).getDay();
+    const ownScheduled = selectedSessions.filter(sk => isSessionScheduled(currentUser.id, dow, sk));
     selectedSessions.forEach(sk=>{ updated[sk]=true; });
-    if(ownBefore.length > 0){
+    if(ownScheduled.length > 0){
       const extra = Array.isArray(updated._substituteExtra) ? [...updated._substituteExtra] : [];
-      ownBefore.forEach(sk=>{ if(!extra.includes(sk)) extra.push(sk); });
+      ownScheduled.forEach(sk=>{ if(!extra.includes(sk)) extra.push(sk); });
       updated._substituteExtra = extra;
     }
     localDb[currentUser.id][dateKey] = updated;
