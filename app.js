@@ -1478,7 +1478,7 @@ function printRekap(){
   .tot{background:#e8f4f0!important;font-weight:bold}
   </style></head><body>
   <div style="display:flex;align-items:flex-start;gap:16px;border-bottom:4px solid #1a5c2a;padding-bottom:10px;margin-bottom:14px">
-    <img src="assets/logo.jpg" style="width:70px;height:70px;border-radius:50%;object-fit:cover;flex-shrink:0"/>
+    <img src="assets/logo.jpg" style="width:70px;height:70px;object-fit:contain;flex-shrink:0"/>
     <div style="flex:1">
       <div style="font-size:9pt;color:#555;text-transform:uppercase;letter-spacing:0.5px">YAYASAN AL-IMAM ASY-SYAFI'I</div>
       <div style="font-size:18pt;font-weight:bold;color:#1a5c2a;line-height:1.1">Pondok Pesantren Al Imam Asy-Syafi'i Tarakan</div>
@@ -2100,13 +2100,13 @@ window.exportUsersPdf=()=>{
   </style></head><body>
   <div class="kop">
     <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:6px">
-      <img src="assets/logo.jpg" style="width:64px;height:64px;border-radius:50%;object-fit:cover"/>
+      <img src="assets/logo.jpg" style="width:64px;height:64px;object-fit:contain"/>
       <div>
         <div style="font-size:10pt">YAYASAN AL-IMAM ASY-SYAFI'I</div>
         <div class="inst">Pondok Pesantren Al Imam Asy-Syafi'i Tarakan</div>
         <div class="sub">Jalan Swaran Jaya RT 15, Juata Permai &nbsp;|&nbsp; Telp. +62 853-2786-3877</div>
       </div>
-      <img src="assets/logo.jpg" style="width:64px;height:64px;border-radius:50%;object-fit:cover"/>
+      <img src="assets/logo.jpg" style="width:64px;height:64px;object-fit:contain"/>
     </div>
   </div>
   <h2>Daftar Pengguna Sistem</h2>
