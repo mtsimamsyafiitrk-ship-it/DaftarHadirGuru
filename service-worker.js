@@ -19,7 +19,7 @@ const PRECACHE_URLS = [
   './js/ui-helpers.js',
   './js/firebase.js',
   './js/hari-libur.js',
-  './assets/logo.jpg',
+  './assets/logo.png',
   './assets/icon.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
