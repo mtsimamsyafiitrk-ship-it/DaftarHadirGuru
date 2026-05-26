@@ -62,7 +62,7 @@ window.hapusSatuHariLibur = hapusSatuHariLibur;
 window.hapusSemuaHariLibur = hapusSemuaHariLibur;
 
 // ── STATE ──
-let users=[], localDb={};
+let users=[], archivedUsers=[], localDb={};
 let currentUser=null;
 let loginRole='user';
 window.muRoles=["Pengajar"];
@@ -83,8 +83,12 @@ function sortUsers(){
 // ── FIRESTORE ──
 async function loadUsers(){
   const snap=await getDocs(collection(fs,"users"));
-  users=[];
-  snap.forEach(d=>users.push({id:d.id,...d.data()}));
+  users=[];archivedUsers=[];
+  snap.forEach(d=>{
+    const user={id:d.id,...d.data()};
+    if(user.archived) archivedUsers.push(user);
+    else users.push(user);
+  });
   sortUsers();
 }
 async function saveUserDoc(user){const{id,...data}=user;await setDoc(doc(fs,"users",id),data);}
@@ -386,14 +390,20 @@ window.__openUserMenu=function(uid){
       '0 5px 16px rgba(71,85,105,0.35)',
       '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>'
     ),
+    archive: ic3d(
+      'linear-gradient(150deg,#818cf8 0%,#4f46e5 100%)',
+      '0 5px 16px rgba(79,70,229,0.45)',
+      '<path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/>'
+    ),
   };
 
   const acts=[
-    {ic:IC.cal,    label:'Absensi',                    fn:`window.__viewAtt('${uid}');${CLOSE}`},
-    {ic:IC.edit,   label:'Edit',                        fn:`window.__editUser('${uid}');${CLOSE}`},
-    {ic:IC.status, label:isCuti?'Aktifkan':'Status',    fn:`window.__editStatus('${uid}');${CLOSE}`},
-    {ic:IC.key,    label:'Reset PW',                    fn:`window.__resetPw('${uid}');${CLOSE}`},
-    {ic:IC.trash,  label:'Hapus',                       fn:`window.__delUser('${uid}');${CLOSE}`},
+    {ic:IC.cal,     label:'Absensi',                   fn:`window.__viewAtt('${uid}');${CLOSE}`},
+    {ic:IC.edit,    label:'Edit',                       fn:`window.__editUser('${uid}');${CLOSE}`},
+    {ic:IC.status,  label:isCuti?'Aktifkan':'Status',   fn:`window.__editStatus('${uid}');${CLOSE}`},
+    {ic:IC.key,     label:'Reset PW',                   fn:`window.__resetPw('${uid}');${CLOSE}`},
+    {ic:IC.archive, label:'Arsipkan',                   fn:`window.__archiveUser('${uid}');${CLOSE}`},
+    {ic:IC.trash,   label:'Hapus',                      fn:`window.__delUser('${uid}');${CLOSE}`},
   ];
 
   let modal=document.getElementById('modal-user-actions');
@@ -1995,6 +2005,54 @@ window.__delUser=async(id)=>{
   }catch(e){showToast('❌ Gagal menghapus',false);}
   hideLoading();
 };
+window.__archiveUser=async(id)=>{
+  const u=users.find(x=>x.id===id);if(!u)return;
+  if(!confirm(`Arsipkan "${u.name}"?\n\nAkun tidak dapat diakses hingga dipulihkan dari menu Arsip.`))return;
+  showLoading('Mengarsipkan...');
+  try{
+    u.archived=true;
+    await saveUserDoc(u);
+    users=users.filter(x=>x.id!==id);
+    archivedUsers.push(u);
+    showToast('📁 Pengguna diarsipkan');
+    renderAdminUsers();
+  }catch(e){showToast('❌ Gagal mengarsipkan',false);}
+  hideLoading();
+};
+window.__unarchiveUser=async(id)=>{
+  const u=archivedUsers.find(x=>x.id===id);if(!u)return;
+  showLoading('Memulihkan akun...');
+  try{
+    u.archived=false;
+    await saveUserDoc(u);
+    archivedUsers=archivedUsers.filter(x=>x.id!==id);
+    users.push(u);
+    sortUsers();
+    showToast('✅ Akun dipulihkan');
+    renderAdminUsers();
+    renderArchivedUsersModal();
+  }catch(e){showToast('❌ Gagal memulihkan',false);}
+  hideLoading();
+};
+function renderArchivedUsersModal(){
+  const container=document.getElementById('archived-user-list');if(!container)return;
+  if(!archivedUsers.length){
+    container.innerHTML=`<div style="text-align:center;padding:40px 20px"><div style="font-size:48px;margin-bottom:12px">📭</div><div style="font-weight:700;color:var(--muted)">Tidak ada akun yang diarsipkan</div></div>`;
+    return;
+  }
+  container.innerHTML=archivedUsers.map(u=>{
+    const roles=getRoles(u);const rc=getRoleColor(roles[0]||'');
+    return`<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)">
+      <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,${rc}99,${rc}66);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#fff;flex-shrink:0">${u.name[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.name}</div>
+        <div style="font-size:11px;color:var(--muted);font-weight:600">${roles[0]||'—'}</div>
+      </div>
+      <button onclick="window.__unarchiveUser('${u.id}')" style="padding:7px 14px;border-radius:10px;border:none;background:linear-gradient(135deg,#4ade80,#16a34a);color:#fff;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap">↩️ Pulihkan</button>
+    </div>`;
+  }).join('');
+}
+window.openArchivedUsers=()=>{renderArchivedUsersModal();openModal('modal-archived-users');};
 window.__resetPw=(id)=>{
   const u=users.find(x=>x.id===id);if(!u)return;
   document.getElementById('rp-uid').value=id;
