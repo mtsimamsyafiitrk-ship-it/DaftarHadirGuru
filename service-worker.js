@@ -3,7 +3,7 @@
 // Cocok untuk aplikasi yang butuh data real-time dari Firestore,
 // tapi tetap bisa diinstal sebagai PWA.
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = `dhg-${CACHE_VERSION}`;
 
 // File yang di-precache saat instalasi (shell aplikasi).
@@ -72,9 +72,13 @@ self.addEventListener('fetch', (event) => {
     return; // biarkan browser handle normal
   }
 
-  // Untuk file dalam origin kita: coba network dulu, fallback ke cache
+  // Untuk file dalam origin kita: coba network dulu, fallback ke cache.
+  // Gunakan cache:'no-cache' agar HTTP cache tidak melayani versi lama —
+  // browser selalu validasi ke server (ETag/304) sebelum pakai cache.
+  const isScript = url.pathname.endsWith('.js') || url.pathname.endsWith('.css');
+  const fetchOpts = isScript ? {cache: 'no-cache'} : {};
   event.respondWith(
-    fetch(req)
+    fetch(req, fetchOpts)
       .then((response) => {
         // Kalau network sukses & response OK, update cache + return
         if (response && response.status === 200 && response.type === 'basic') {
