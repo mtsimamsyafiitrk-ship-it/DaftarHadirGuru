@@ -76,9 +76,9 @@ export const CUSTOM_ORDER = [
   ["MUHAMMAD INDERA ALFHANDY", "INDERA ALFHANDY"],     // 13
   ["ASMAN SUGANDHA PRATAMA", "ASMAN SUGANDHA"],        // 14
   ["NASRI JAYA"],                                      // 15
-  ["FAJRIN NUR MUHAMMAD TARIKA", "FAJRIN NM", "FAJRIN"],// 16
+  ["FAJRIN TARIKA NUR MUHAMMAD", "FAJRIN NUR MUHAMMAD TARIKA", "FAJRIN NM", "FAJRIN"],// 16
   ["ASMIN SUGANDHI PRATAMA", "ASMIN SUGANDHI"],        // 17
-  ["IRFAN HARJO SANTOSO", "IRFAN HARJO"],              // 18
+  ["MUHAMMAD FAATHUR NURFATH", "FAATHUR NURFATH", "FAATHUR"],// 18
   ["MUHAMMAD IHSAN"],                                  // 19 - hati-hati urutan setelah IHSAN FAUZY
   ["MUHAMMAD SYUKUR"],                                 // 20
   ["MUHAMMAD KHAEZAR NAZARULLY", "KHAEZAR"],           // 21

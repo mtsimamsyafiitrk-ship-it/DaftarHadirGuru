@@ -322,7 +322,10 @@
   </div>
   <div class="body">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <div class="sec-title">👥 Daftar Pengguna</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="sec-title">👥 Daftar Pengguna</div>
+        <button onclick="openArchivedUsers()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:4px;line-height:1.4">📁 Arsip</button>
+      </div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-rose" style="font-size:12px;padding:8px 14px" onclick="exportUsersPdf()">📄 Export PDF</button>
         <button class="btn btn-sage" style="font-size:12px;padding:8px 14px" onclick="openAddUserModal()">+ Tambah</button>
@@ -734,6 +737,20 @@
       <button class="btn btn-sage" style="flex:1" onclick="saveStatusModal()">✓ Simpan</button>
       <button class="btn btn-gray" style="flex:1" onclick="closeModal('modal-status')">Batal</button>
     </div>
+  </div>
+</div>
+
+<div id="modal-archived-users" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal('modal-archived-users')">
+  <div class="modal" style="padding:0;overflow:hidden;max-width:400px">
+    <div style="padding:18px 18px 14px;background:linear-gradient(135deg,var(--bg2),#fff);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+      <div style="font-size:22px">📁</div>
+      <div style="flex:1">
+        <div style="font-weight:800;font-size:16px">Akun Diarsipkan</div>
+        <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px">Akun tidak aktif — klik Pulihkan untuk mengaktifkan kembali</div>
+      </div>
+      <button onclick="closeModal('modal-archived-users')" style="background:none;border:none;padding:6px;cursor:pointer;color:var(--muted);border-radius:8px;font-size:18px;line-height:1">✕</button>
+    </div>
+    <div id="archived-user-list" style="max-height:420px;overflow-y:auto"></div>
   </div>
 </div>
 
