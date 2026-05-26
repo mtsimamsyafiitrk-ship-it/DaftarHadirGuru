@@ -70,7 +70,7 @@ export const CUSTOM_ORDER = [
   ["IMAM HIDAYAT"],                                    // 7
   ["METRIC CISARUANDA"],                               // 8
   ["USMAN"],                                           // 9
-  ["MUHAMMAD IHSAN FAUZY"],                            // 10
+  ["MUHAMMAD IHSAN FAUZY", "MUHAMMAD IHSAN FAUZI"],     // 10
   ["MUHAMMAD IQBAL"],                                  // 11
   ["MUHAMMAD SYARIF"],                                 // 12
   ["MUHAMMAD INDERA ALFHANDY", "INDERA ALFHANDY"],     // 13
