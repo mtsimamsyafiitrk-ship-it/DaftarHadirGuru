@@ -70,7 +70,7 @@ export const CUSTOM_ORDER = [
   ["IMAM HIDAYAT"],                                    // 7
   ["METRIC CISARUANDA"],                               // 8
   ["USMAN"],                                           // 9
-  ["MUHAMMAD IHSAN FAUZY"],                            // 10
+  ["MUHAMMAD IHSAN FAUZI", "IHSAN FAUZI"],             // 10
   ["MUHAMMAD IQBAL"],                                  // 11
   ["MUHAMMAD SYARIF"],                                 // 12
   ["MUHAMMAD INDERA ALFHANDY", "INDERA ALFHANDY"],     // 13
@@ -79,7 +79,7 @@ export const CUSTOM_ORDER = [
   ["FAJRIN TARIKA NUR MUHAMMAD", "FAJRIN NUR MUHAMMAD TARIKA", "FAJRIN NM", "FAJRIN"],// 16
   ["ASMIN SUGANDHI PRATAMA", "ASMIN SUGANDHI"],        // 17
   ["MUHAMMAD FAATHUR NURFATH", "FAATHUR NURFATH", "FAATHUR"],// 18
-  ["MUHAMMAD IHSAN"],                                  // 19 - hati-hati urutan setelah IHSAN FAUZY
+  ["MUHAMMAD IHSAN"],                                  // 19 - hati-hati urutan setelah IHSAN FAUZI
   ["MUHAMMAD SYUKUR"],                                 // 20
   ["MUHAMMAD KHAEZAR NAZARULLY", "KHAEZAR"],           // 21
 ];
