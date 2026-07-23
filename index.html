@@ -224,7 +224,17 @@
 
       <!-- Jadwal tersimpan -->
       <div id="h-saved-schedule" style="display:none;margin-top:12px">
-        <div style="font-weight:700;font-size:13px;color:var(--amber2);margin-bottom:8px">📋 Jadwal Tersimpan:</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <div style="font-weight:700;font-size:13px;color:var(--amber2)">📋 Jadwal Tersimpan:</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button id="h-edit-schedule-btn" onclick="toggleScheduleEdit()" style="padding:6px 12px;background:var(--sage);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">✏️ Edit di Tempat</button>
+            <button id="h-save-edit-btn" onclick="saveScheduleEdits()" style="display:none;padding:6px 12px;background:var(--sage2);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">💾 Simpan Perubahan</button>
+            <button id="h-cancel-edit-btn" onclick="cancelScheduleEdit()" style="display:none;padding:6px 12px;background:#e2626d;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">✕ Batal</button>
+          </div>
+        </div>
+        <div id="h-edit-hint" style="display:none;margin-bottom:8px;padding:8px 12px;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:8px;font-size:11px;color:#166534;font-weight:600;line-height:1.6">
+          Klik sel ✅/— untuk menyalakan/mematikan sesi pada hari itu. Perubahan hanya memengaruhi jadwal ke depan (validasi sesi &amp; pengisian otomatis) — data kehadiran &amp; hitungan jam yang sudah tercatat <b>tidak diubah</b>.
+        </div>
         <div id="h-saved-table" style="overflow-x:auto;font-size:11px"></div>
       </div>
     </div>
