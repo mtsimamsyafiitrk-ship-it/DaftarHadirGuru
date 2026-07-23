@@ -717,6 +717,13 @@ async function saveHolidaySchedule(data){
   const existing = await getHolidaySchedule();
   await setDoc(doc(fs,'config','schedule'), {...existing, ...data});
 }
+// Tanggal mulai berlaku jadwal terakhir yang diupload. '' jika belum pernah dicatat.
+async function getScheduleEffectiveDate(){
+  try{
+    const d = await getDoc(doc(fs,'config','scheduleMeta'));
+    return d.exists() ? (d.data().effectiveDate || '') : '';
+  }catch(e){ return ''; }
+}
 
 // ── Modal open/close ──
 function openHolidayModal(){
@@ -1100,8 +1107,9 @@ async function saveSchedule(){
   if(!effectiveDate){ showToast('Tentukan dulu Tanggal Mulai Berlaku',false); return; }
   showLoading('Menyimpan jadwal...');
   try{
-    // 1. Simpan jadwal baru ke Firestore
+    // 1. Simpan jadwal baru ke Firestore + catat tanggal mulai berlaku (dipakai edit di tempat)
     await setDoc(doc(fs,'config','schedule'), hScheduleData);
+    await setDoc(doc(fs,'config','scheduleMeta'), {effectiveDate});
 
     // 2. Ambil tanggal libur yang sudah ditandai, batasi hanya tanggal >= tanggal mulai berlaku.
     // Perbandingan string "YYYY-MM-DD" aman secara leksikografis untuk urutan tanggal.
@@ -1312,8 +1320,93 @@ function cancelScheduleEdit(){
 }
 window.cancelScheduleEdit = cancelScheduleEdit;
 
-// Simpan hasil edit ke Firestore. Hanya memperbarui pola jadwal (config/schedule);
-// TIDAK menyentuh data kehadiran yang sudah tercatat.
+// Format Date → "YYYY-MM-DD" (local time).
+function dateToKey(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// Hitung perubahan sesi (delta) antara jadwal lama & baru.
+// Return: [{uid, day(JsIdx), sess, newVal(bool)}]
+function computeScheduleDelta(orig, cleaned){
+  const SESS_KEYS = SESSIONS.map(s=>s.key);
+  const DAY_INDICES = [6,0,1,2,3,4];
+  const uids = new Set([...Object.keys(orig||{}), ...Object.keys(cleaned||{})]);
+  const delta = [];
+  uids.forEach(uid=>{
+    DAY_INDICES.forEach(day=>{
+      SESS_KEYS.forEach(sess=>{
+        const o = !!(orig[uid] && orig[uid][day] && orig[uid][day][sess]===true);
+        const n = !!(cleaned[uid] && cleaned[uid][day] && cleaned[uid][day][sess]===true);
+        if(o!==n) delta.push({uid, day, sess, newVal:n});
+      });
+    });
+  });
+  return delta;
+}
+
+// Peta tanggal per hari-dalam-minggu untuk rentang [startKey, endKey] inklusif.
+function datesInRangeByDow(startKey, endKey){
+  const map = {0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
+  const cur = new Date(startKey+'T00:00:00');
+  const end = new Date(endKey+'T00:00:00');
+  while(cur <= end){
+    map[cur.getDay()].push(dateToKey(cur));
+    cur.setDate(cur.getDate()+1);
+  }
+  return map;
+}
+
+// Ringkasan delta untuk dialog konfirmasi.
+function summarizeDelta(delta){
+  const DF_FULL = ['Ahad','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const lines = delta.slice(0,8).map(d=>{
+    const u = users.find(x=>x.id===d.uid);
+    const label = u ? (u.name||u.username||d.uid) : d.uid;
+    return `• ${d.sess} ${DF_FULL[d.day]} → ${d.newVal?'ON':'OFF'} (${label})`;
+  });
+  if(delta.length>8) lines.push(`• …dan ${delta.length-8} perubahan lain`);
+  return lines.join('\n');
+}
+
+// Terapkan delta ke tanggal-tanggal lampau. Hanya sesi yang berubah yang diubah;
+// sesi lain pada tanggal itu tidak disentuh. Return jumlah tanggal-guru yang ditulis.
+async function applyScheduleDeltaRetro(delta, dowDates){
+  // Kelompokkan perubahan per (uid, tanggal) → 1 tulis per tanggal walau banyak sesi berubah.
+  const changesByUidDate = {};
+  for(const dch of delta){
+    for(const dateKey of (dowDates[dch.day] || [])){
+      const k = `${dch.uid}|${dateKey}`;
+      (changesByUidDate[k] = changesByUidDate[k] || []).push(dch);
+    }
+  }
+  // Muat kehadiran semua user yang terdampak.
+  for(const uid of new Set(delta.map(d=>d.uid))){ await loadAtt(uid); }
+
+  const savePromises = [];
+  let count = 0;
+  for(const [k, changes] of Object.entries(changesByUidDate)){
+    const sep = k.indexOf('|');
+    const uid = k.slice(0, sep);
+    const dateKey = k.slice(sep+1);
+    const [y,m,d] = dateKey.split('-').map(Number);
+    if(isBeforeJoinDate(uid, y, m-1, d)) continue; // lewati sebelum bergabung
+    const existed = !!(localDb[uid] && localDb[uid][dateKey]);
+    // Tanggal belum ada catatan & semua perubahan hanya mematikan sesi → tidak perlu tulis apa pun.
+    if(!existed && changes.every(c=>c.newVal===false)) continue;
+    const day = existed ? {...localDb[uid][dateKey]} : emptyDay();
+    changes.forEach(c=>{ day[c.sess] = c.newVal; });
+    if(!localDb[uid]) localDb[uid] = {};
+    localDb[uid][dateKey] = day;
+    savePromises.push(saveAtt(uid, dateKey, day));
+    count++;
+  }
+  await Promise.all(savePromises);
+  return count;
+}
+
+// Simpan hasil edit ke Firestore. Pola jadwal (config/schedule) selalu diperbarui untuk ke depan.
+// Jika ada perubahan sesi, tawarkan menerapkannya MUNDUR ke tanggal sejak jadwal terakhir berlaku —
+// hanya sesi yang berubah yang disesuaikan, data lain tidak disentuh.
 async function saveScheduleEdits(){
   if(!scheduleEditMode || !scheduleEditData){ return; }
   showLoading('Menyimpan perubahan jadwal...');
@@ -1327,6 +1420,11 @@ async function saveScheduleEdits(){
       const hasAnySession = Object.values(week||{}).some(day=>Object.values(day||{}).some(Boolean));
       if(wasScheduled || hasAnySession) cleaned[uid] = week;
     });
+
+    // Hitung delta SEBELUM cache lama ditimpa.
+    const delta = computeScheduleDelta(orig, cleaned);
+
+    // Simpan pola jadwal untuk ke depan.
     await setDoc(doc(fs,'config','schedule'), cleaned);
     _savedScheduleCache = JSON.parse(JSON.stringify(cleaned));
     globalSchedule = _savedScheduleCache; // sinkronkan cache validasi sesi
@@ -1335,7 +1433,53 @@ async function saveScheduleEdits(){
     setScheduleEditButtons(false);
     renderSavedSchedule();
     hideLoading();
-    showToast('✅ Perubahan jadwal disimpan! Data kehadiran yang sudah ada tidak diubah.');
+
+    if(delta.length === 0){
+      showToast('✅ Jadwal disimpan. Tidak ada perubahan sesi yang terdeteksi.');
+      return;
+    }
+
+    // Ambil tanggal mulai berlaku jadwal terakhir; jika belum tercatat, minta sekali.
+    let effectiveDate = await getScheduleEffectiveDate();
+    const todayKey = dateToKey(new Date());
+    if(!effectiveDate){
+      const inp = prompt('Jadwal terakhir belum punya "tanggal mulai berlaku" tersimpan.\n\nIsi tanggal acuan (format YYYY-MM-DD) untuk menerapkan perubahan mundur, atau tekan Batal untuk hanya berlaku ke depan:', todayKey);
+      if(inp && /^\d{4}-\d{2}-\d{2}$/.test(inp.trim())){
+        effectiveDate = inp.trim();
+        await setDoc(doc(fs,'config','scheduleMeta'), {effectiveDate});
+      } else {
+        showToast('✅ Perubahan jadwal disimpan (hanya berlaku ke depan).');
+        return;
+      }
+    }
+
+    if(effectiveDate > todayKey){
+      showToast('✅ Perubahan jadwal disimpan (berlaku ke depan). Tanggal berlaku belum lewat.');
+      return;
+    }
+
+    // Pratinjau jumlah tanggal terdampak.
+    const dowDates = datesInRangeByDow(effectiveDate, todayKey);
+    let affected = 0;
+    delta.forEach(dch=>{ affected += (dowDates[dch.day]||[]).length; });
+
+    const ok = confirm(
+      `Perubahan jadwal:\n${summarizeDelta(delta)}\n\n` +
+      `Terapkan juga MUNDUR ke tanggal yang sudah lalu sejak jadwal terakhir berlaku (${effectiveDate})?\n\n` +
+      `• Hanya sesi yang berubah yang disesuaikan; kehadiran lain tidak diubah.\n` +
+      `• Sekitar ${affected} tanggal-guru akan disesuaikan.\n` +
+      `• Hitungan jam pada bulan yang sudah lewat bisa berubah.\n\n` +
+      `OK = Terapkan mundur    •    Batal = Hanya ke depan`
+    );
+    if(!ok){
+      showToast('✅ Perubahan jadwal disimpan (hanya berlaku ke depan).');
+      return;
+    }
+
+    showLoading('Menerapkan perubahan ke tanggal sebelumnya...');
+    const applied = await applyScheduleDeltaRetro(delta, dowDates);
+    hideLoading();
+    showToast(`✅ Perubahan diterapkan ke ${applied} tanggal sejak ${effectiveDate}. Sesi & data lain tidak diubah.`);
   }catch(e){ hideLoading(); showToast('Gagal simpan: '+e.message, false); }
 }
 window.saveScheduleEdits = saveScheduleEdits;
