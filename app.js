@@ -23,6 +23,27 @@ function xlsxDownload(wb, filename) {
   }
 }
 
+// ── LAZY-LOAD XLSX ──
+// Library XLSX (±900KB) hanya dipakai admin untuk template/upload jadwal & ekspor rekap.
+// Dimuat on-demand agar tidak membebani load awal untuk mayoritas pengguna (guru).
+let _xlsxLoad = null;
+function ensureXLSX(){
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (!_xlsxLoad){
+    _xlsxLoad = new Promise((resolve, reject)=>{
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload  = ()=> resolve(window.XLSX);
+      s.onerror = ()=>{ _xlsxLoad = null; reject(new Error('Gagal memuat modul Excel')); };
+      document.head.appendChild(s);
+    });
+  }
+  return _xlsxLoad;
+}
+// Muat di latar tanpa menunggu — dipanggil saat admin membuka layar yang butuh Excel,
+// agar tombol download/ekspor tetap responsif (sinkron) saat diklik.
+function prewarmXLSX(){ ensureXLSX().catch(()=>{}); }
+
 // ── IMPORTS ──
 // Firebase & Firestore wrappers
 import {
@@ -463,6 +484,7 @@ async function renderRekapPage(){
   document.getElementById('rekap-year').textContent=rekapYear;
   // Load attendance untuk semua user yang belum di-cache
   showLoading("Memuat data rekapitulasi...");
+  prewarmXLSX(); // siapkan modul Excel untuk ekspor rekap
   await Promise.all(users.map(u=>loadAtt(u.id)));
   hideLoading();
   renderRekapTable();
@@ -739,6 +761,7 @@ function openHolidayModal(){
   switchHMode('range');
   // Load saved schedule display
   loadSavedScheduleDisplay();
+  prewarmXLSX(); // siapkan modul Excel untuk template/upload jadwal
   document.getElementById('modal-holiday').style.display = 'flex';
 }
 window.openHolidayModal = openHolidayModal;
@@ -923,7 +946,7 @@ window.applyHolidays = applyHolidays;
 
 // ── Template download ──
 function downloadScheduleTemplate(){
-  if(typeof XLSX === 'undefined'){ showToast('Library Excel belum siap',false); return; }
+  if(!window.XLSX){ prewarmXLSX(); showToast('⏳ Menyiapkan modul Excel, klik lagi sebentar…',false); return; }
   const SESS_KEYS = SESSIONS.map(s=>s.key);
   // Urutan hari aktif: Sabtu, Ahad, Senin→Kamis (tanpa Jumat)
   const dayNames = ['Sabtu','Ahad','Senin','Selasa','Rabu','Kamis'];
@@ -960,6 +983,7 @@ async function previewSchedule(event){
   const errEl = document.getElementById('h-jadwal-err');
   errEl.style.display = 'none';
   try{
+    await ensureXLSX(); // pastikan modul Excel siap sebelum membaca file
     const parsed = await parseScheduleFile(file);
     hScheduleData = parsed.data;
     const DAY_NAMES  = ['Sabtu','Ahad','Senin','Selasa','Rabu','Kamis'];
@@ -1953,7 +1977,7 @@ window.tutupPengingatNotif = tutupPengingatNotif;
 
 function exportRekapExcel(){
   const y=rekapYear,m=rekapMonth,tw=wim(y,m);
-  if(typeof XLSX==='undefined'){showToast('❌ Library Excel belum siap',false);return;}
+  if(!window.XLSX){ prewarmXLSX(); showToast('⏳ Menyiapkan modul Excel, klik lagi sebentar…',false); return; }
 
   const wb=XLSX.utils.book_new();
   const aoa=[]; // array of arrays — baris demi baris
