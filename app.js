@@ -47,7 +47,8 @@ function prewarmXLSX(){ ensureXLSX().catch(()=>{}); }
 // ── IMPORTS ──
 // Firebase & Firestore wrappers
 import {
-  fs, doc, getDoc, setDoc, deleteDoc, updateDoc, collection, getDocs
+  fs, doc, getDoc, setDoc, deleteDoc, updateDoc, collection, getDocs,
+  query, where, documentId
 } from "./js/firebase.js";
 
 import {
@@ -118,11 +119,45 @@ async function deleteUserDoc(id){
   const snap=await getDocs(collection(fs,"att_"+id));
   await Promise.all(snap.docs.map(d=>deleteDoc(doc(fs,"att_"+id,d.id))));
 }
+// ── Pemuatan kehadiran (cache) ──
+// localDb[uid] = {dateKey: dayData}. Bisa terisi penuh (loadAtt) atau per-bulan (loadAttMonth).
+// attFullyLoaded  : uid yang seluruh riwayatnya sudah dimuat.
+// attLoadedMonths : {uid: Set("YYYY-MM")} bulan yang sudah dimuat (agar tidak dibaca ulang).
+const attFullyLoaded = new Set();
+const attLoadedMonths = {};
+const monthKeyOf = (y,m)=> `${y}-${String(m+1).padStart(2,'0')}`;
+
+// Lupakan cache pemuatan untuk uid (mis. saat user dihapus / data di-reset).
+function forgetAttCache(uid){
+  attFullyLoaded.delete(uid);
+  delete attLoadedMonths[uid];
+}
+
+// Muat SELURUH riwayat kehadiran user. Dipakai fitur yang butuh data lintas-bulan.
 async function loadAtt(uid){
-  if(localDb[uid])return;
+  if(attFullyLoaded.has(uid))return;
   const snap=await getDocs(collection(fs,"att_"+uid));
   localDb[uid]={};
   snap.forEach(d=>{localDb[uid][d.id]=d.data()});
+  attFullyLoaded.add(uid);
+  attLoadedMonths[uid] = new Set(); // penuh → cek termuat lewat attFullyLoaded
+}
+
+// Muat kehadiran user HANYA untuk satu bulan (query rentang berdasar id dokumen = tanggal).
+// Jauh lebih ringan untuk rekap: baca ~1 bulan, bukan seluruh riwayat.
+async function loadAttMonth(uid, y, m){
+  if(attFullyLoaded.has(uid)) return;
+  const mk = monthKeyOf(y,m);
+  if(attLoadedMonths[uid] && attLoadedMonths[uid].has(mk)) return;
+  const startKey = dk(y,m,1);
+  const endKey   = dk(y,m,dim(y,m));
+  const qy = query(collection(fs,"att_"+uid),
+                   where(documentId(),'>=',startKey),
+                   where(documentId(),'<=',endKey));
+  const snap = await getDocs(qy);
+  if(!localDb[uid]) localDb[uid] = {};
+  snap.forEach(d=>{ localDb[uid][d.id] = d.data(); });
+  (attLoadedMonths[uid] = attLoadedMonths[uid] || new Set()).add(mk);
 }
 async function saveAtt(uid,dateKey,data){await setDoc(doc(fs,"att_"+uid,dateKey),data);}
 async function getAdminDoc(){const d=await getDoc(doc(fs,"config","admin"));return d.exists()?d.data():null;}
@@ -485,7 +520,8 @@ async function renderRekapPage(){
   // Load attendance untuk semua user yang belum di-cache
   showLoading("Memuat data rekapitulasi...");
   prewarmXLSX(); // siapkan modul Excel untuk ekspor rekap
-  await Promise.all(users.map(u=>loadAtt(u.id)));
+  // Muat kehadiran HANYA untuk bulan yang sedang dilihat (hemat baca Firestore).
+  await Promise.all(users.map(u=>loadAttMonth(u.id, rekapYear, rekapMonth)));
   hideLoading();
   renderRekapTable();
 }
@@ -1850,7 +1886,7 @@ async function openBelumLengkapModal(){
 
     for(const user of users){
       if(user.status === "cuti") continue;
-      await loadAtt(user.id);
+      await loadAttMonth(user.id, y, m); // hanya butuh bulan rekap yang dilihat
       const kurang = [];
 
       for(let d=1; d<=dim2; d++){
@@ -2296,6 +2332,7 @@ window.__delUser=async(id)=>{
     await deleteUserDoc(id);
     users=users.filter(x=>x.id!==id);
     delete localDb[id];
+    forgetAttCache(id);
     showToast('🗑️ Pengguna dihapus');
     renderAdminUsers();
   }catch(e){showToast('❌ Gagal menghapus',false);}
