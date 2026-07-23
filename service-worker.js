@@ -3,7 +3,7 @@
 // Cocok untuk aplikasi yang butuh data real-time dari Firestore,
 // tapi tetap bisa diinstal sebagai PWA.
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `dhg-${CACHE_VERSION}`;
 
 // File yang di-precache saat instalasi (shell aplikasi).
@@ -49,7 +49,10 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// ── Fetch: online-first untuk dokumen, cache-first untuk assets ──
+// ── Fetch: stale-while-revalidate untuk shell aplikasi ──
+// Aset milik origin (HTML, app.js, modul JS, CSS, ikon) dilayani LANGSUNG dari cache
+// bila ada, lalu diperbarui di latar belakang. Ini membuat load terasa instan pada
+// kunjungan berikutnya, alih-alih menunggu unduh ulang dari jaringan tiap kali.
 self.addEventListener('fetch', (event) => {
   const req = event.request;
 
@@ -72,31 +75,34 @@ self.addEventListener('fetch', (event) => {
     return; // biarkan browser handle normal
   }
 
-  // Untuk file dalam origin kita: coba network dulu, fallback ke cache
+  // Aset dalam origin kita: stale-while-revalidate.
   event.respondWith(
-    fetch(req)
-      .then((response) => {
-        // Kalau network sukses & response OK, update cache + return
-        if (response && response.status === 200 && response.type === 'basic') {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.match(req).then((cached) => {
+        // Revalidasi di latar: ambil versi terbaru & perbarui cache.
+        const networkFetch = fetch(req)
+          .then((response) => {
+            if (response && response.status === 200 && response.type === 'basic') {
+              cache.put(req, response.clone());
+            }
+            return response;
+          })
+          .catch(() => null);
+
+        // Ada di cache → kembalikan segera (instan). Tidak ada → tunggu network.
+        if (cached) {
+          event.waitUntil(networkFetch); // biarkan update latar selesai
+          return cached;
         }
-        return response;
-      })
-      .catch(() => {
-        // Network gagal → coba dari cache
-        return caches.match(req).then((cached) => {
-          if (cached) return cached;
-          // Kalau minta halaman HTML tapi tidak ada di cache → fallback ke index
-          if (req.mode === 'navigate') {
-            return caches.match('./index.html');
-          }
-          // Kalau tidak ada sama sekali, biarkan error apa adanya
+        return networkFetch.then((resp) => {
+          if (resp) return resp;
+          if (req.mode === 'navigate') return cache.match('./index.html');
           return new Response('Offline — tidak ada data di cache', {
             status: 503,
             statusText: 'Service Unavailable'
           });
         });
       })
+    )
   );
 });
