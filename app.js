@@ -975,6 +975,14 @@ async function previewSchedule(event){
     document.getElementById('h-schedule-table').innerHTML = html;
     document.getElementById('h-schedule-preview').style.display = '';
     document.getElementById('h-save-schedule-btn').style.display = '';
+    // Tampilkan input tanggal mulai berlaku; default = hari ini agar libur lama tidak tersentuh
+    const effWrap = document.getElementById('h-schedule-effective-wrap');
+    const effInput = document.getElementById('h-schedule-effective-date');
+    if(effWrap) effWrap.style.display = '';
+    if(effInput && !effInput.value){
+      const t = new Date();
+      effInput.value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+    }
   }catch(e){ errEl.textContent='Gagal baca file: '+e.message; errEl.style.display='block'; }
 }
 window.previewSchedule = previewSchedule;
@@ -1082,13 +1090,19 @@ async function parseScheduleFile(file){
 // ── Simpan jadwal ke Firestore ──
 async function saveSchedule(){
   if(!hScheduleData){ showToast('Tidak ada data jadwal',false); return; }
+  // Tanggal mulai berlaku: hari libur sebelum tanggal ini TIDAK disentuh
+  const effInput = document.getElementById('h-schedule-effective-date');
+  const effectiveDate = effInput ? effInput.value : '';
+  if(!effectiveDate){ showToast('Tentukan dulu Tanggal Mulai Berlaku',false); return; }
   showLoading('Menyimpan jadwal...');
   try{
     // 1. Simpan jadwal baru ke Firestore
     await setDoc(doc(fs,'config','schedule'), hScheduleData);
 
-    // 2. Ambil semua tanggal libur yang sudah ditandai
-    const holidayDates = await getHolidayDates();
+    // 2. Ambil tanggal libur yang sudah ditandai, batasi hanya tanggal >= tanggal mulai berlaku.
+    // Perbandingan string "YYYY-MM-DD" aman secara leksikografis untuk urutan tanggal.
+    const allHolidayDates = await getHolidayDates();
+    const holidayDates = allHolidayDates.filter(d => d >= effectiveDate);
 
     if(holidayDates.length > 0){
       showLoading(`Memperbarui absensi untuk ${holidayDates.length} hari libur sesuai jadwal baru...`);
@@ -1127,14 +1141,16 @@ async function saveSchedule(){
 
       await Promise.all(savePromises);
       await renderRekapPage();
-      showToast(`✅ Jadwal disimpan & ${holidayDates.length} hari libur diperbarui sesuai jadwal baru!`);
+      showToast(`✅ Jadwal disimpan & ${holidayDates.length} hari libur sejak ${effectiveDate} diperbarui. Data sebelumnya tidak diubah.`);
     } else {
-      showToast('✅ Jadwal pelajaran berhasil disimpan!');
+      showToast('✅ Jadwal pelajaran berhasil disimpan! Tidak ada hari libur sejak tanggal berlaku yang perlu diperbarui.');
     }
 
     loadSavedScheduleDisplay();
     document.getElementById('h-save-schedule-btn').style.display = 'none';
     document.getElementById('h-schedule-preview').style.display = 'none';
+    const effWrap = document.getElementById('h-schedule-effective-wrap');
+    if(effWrap) effWrap.style.display = 'none';
     document.getElementById('h-schedule-file').value = '';
     hideLoading();
   }catch(e){ hideLoading(); showToast('Gagal simpan: '+e.message, false); }
