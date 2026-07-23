@@ -188,7 +188,7 @@
 
     <!-- Panel: Jadwal Pelajaran -->
     <div id="hpanel-jadwal" style="display:none">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Upload jadwal pelajaran untuk menentukan sesi mana yang otomatis terisi saat hari libur diterapkan.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Upload jadwal pelajaran untuk menentukan sesi mana yang otomatis terisi saat hari libur diterapkan. Saat mengganti jadwal (mis. tahun ajaran baru), tentukan <b>Tanggal Mulai Berlaku</b> agar kehadiran & hitungan jam sebelum tanggal itu tidak berubah.</div>
       
       <div style="background:var(--muted-bg);border-radius:10px;padding:12px;margin-bottom:14px">
         <div style="font-weight:700;font-size:13px;margin-bottom:6px">Format File Excel/CSV:</div>
@@ -208,6 +208,15 @@
       <div id="h-schedule-preview" style="display:none;margin-bottom:14px">
         <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--sage2)">Preview Jadwal:</div>
         <div id="h-schedule-table" style="overflow-x:auto;font-size:11px"></div>
+      </div>
+
+      <div id="h-schedule-effective-wrap" class="input-wrap" style="display:none;margin-bottom:12px">
+        <label>Tanggal Mulai Berlaku (tahun ajaran baru)</label>
+        <input id="h-schedule-effective-date" class="input" type="date" style="padding:8px"/>
+        <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:6px">
+          Jadwal baru hanya diterapkan ke hari libur pada tanggal ini <b>dan setelahnya</b>.
+          Kehadiran & hitungan jam sebelum tanggal ini <b>tidak akan diubah</b>.
+        </div>
       </div>
 
       <div id="h-jadwal-err" style="display:none;color:var(--rose2);font-size:12px;margin-bottom:10px"></div>
