@@ -5,7 +5,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
 import {
   getFirestore, doc, getDoc, setDoc, deleteDoc, updateDoc,
-  collection, getDocs
+  collection, getDocs, query, where, documentId
 } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -25,5 +25,5 @@ export const fs = getFirestore(fapp);
 // cukup import { fs, doc, getDoc, ... } from './firebase.js' — 1 source of truth.
 export {
   doc, getDoc, setDoc, deleteDoc, updateDoc,
-  collection, getDocs
+  collection, getDocs, query, where, documentId
 };
