@@ -677,6 +677,10 @@ let hSelectedDates = new Set(); // Set of "YYYY-MM-DD" strings
 let hMode = 'range'; // 'range' | 'pick'
 let hScheduleData = null; // {uid: {H1:bool, J1:bool, ...}}
 let globalSchedule = null; // Cache jadwal semua user: {uid: {dayJsIdx: {H1:bool,...}}}
+let _savedScheduleCache = null; // cache jadwal tersimpan untuk render & edit di tempat
+let scheduleEditMode = false;   // apakah tabel jadwal sedang dalam mode edit
+let scheduleEditData = null;    // salinan jadwal yang sedang diedit di tempat
+let _scheduleRowUids = [];      // urutan uid per baris tabel (untuk toggle sel)
 
 // ── Helpers jadwal pengguna ──
 // Ambil jadwal sesi untuk uid pada dayJsIdx (0=Ahad,...,6=Sab)
@@ -1158,75 +1162,183 @@ async function saveSchedule(){
 window.saveSchedule = saveSchedule;
 
 // ── Tampilkan jadwal tersimpan ──
+// Ambil data dari Firestore lalu render. Selalu keluar dari mode edit saat data dimuat ulang.
 async function loadSavedScheduleDisplay(){
   const savedEl = document.getElementById('h-saved-schedule');
   const tableEl = document.getElementById('h-saved-table');
   if(!savedEl||!tableEl) return;
   try{
-    const schedule = await getHolidaySchedule();
-    const SESS_KEYS  = SESSIONS.map(s=>s.key);
-    const DAY_NAMES  = ['Sabtu','Ahad','Senin','Selasa','Rabu','Kamis'];
-    const DAY_INDICES= [6,0,1,2,3,4];
-
-    // Gabungkan: user yang punya jadwal + user aktif yang belum punya jadwal
-    const activeUsers = users.filter(u => u.status !== 'cuti');
-    const scheduledUids = new Set(Object.keys(schedule));
-
-    // Header baris 1: hari
-    let dayHdr = `<th rowspan="2" style="padding:4px 6px;background:var(--amber);color:#fff;border:1px solid var(--border);vertical-align:middle">Nama</th>`;
-    DAY_NAMES.forEach(d=>{
-      dayHdr += `<th colspan="${SESS_KEYS.length}" style="padding:3px 4px;background:var(--amber);color:#fff;border:1px solid var(--border);text-align:center;font-size:11px">${d}</th>`;
-    });
-    // Header baris 2: sesi
-    let sessHdr = DAY_NAMES.flatMap(()=>SESS_KEYS.map(s=>`<th style="padding:2px 3px;background:var(--amber2);color:#fff;border:1px solid var(--border);font-size:9px">${s}</th>`)).join('');
-    let html = `<table style="border-collapse:collapse;font-size:11px"><thead>
-      <tr>${dayHdr}</tr><tr>${sessHdr}</tr>
-    </thead><tbody>`;
-
-    // 1. Render user yang sudah punya jadwal
-    Object.entries(schedule).forEach(([uid, weekData])=>{
-      const user = users.find(u=>u.id===uid);
-      // Fix: gunakan name → username → uid (hindari tampil angka ID)
-      const label = user ? (user.name||user.username||uid) : uid;
-      let cells = `<td style="padding:3px 6px;border:1px solid var(--border);font-weight:600;white-space:nowrap">${label}</td>`;
-      DAY_NAMES.forEach((_,di)=>{
-        const dayData = weekData[DAY_INDICES[di]] || {};
-        SESS_KEYS.forEach(s=>{
-          cells += `<td style="padding:2px 3px;border:1px solid var(--border);text-align:center;color:${dayData[s]?'var(--sage2)':'var(--muted)'}">${dayData[s]?'✅':'—'}</td>`;
-        });
-      });
-      html += `<tr>${cells}</tr>`;
-    });
-
-    // 2. Render user aktif yang BELUM punya jadwal — tandai dengan baris kuning
-    const unscheduled = activeUsers.filter(u => !scheduledUids.has(u.id));
-    unscheduled.forEach(user=>{
-      const label = user.name||user.username||user.id;
-      const emptyCols = DAY_NAMES.flatMap(()=>SESS_KEYS.map(()=>
-        `<td style="padding:2px 3px;border:1px solid var(--border);text-align:center;color:#d97706">—</td>`
-      )).join('');
-      html += `<tr style="background:#fffbeb">
-        <td style="padding:3px 6px;border:1px solid var(--border);font-weight:600;white-space:nowrap;color:#d97706">
-          ${label} <span style="font-size:10px;background:#fef3c7;color:#d97706;border:1px solid #fde68a;border-radius:6px;padding:1px 5px;margin-left:4px">⚠️ Belum diatur</span>
-        </td>${emptyCols}</tr>`;
-    });
-
-    if(Object.keys(schedule).length === 0 && unscheduled.length === 0){
-      savedEl.style.display='none'; return;
-    }
-
-    html += '</tbody></table>';
-    // Tambah keterangan jika ada yang belum diatur
-    if(unscheduled.length > 0){
-      html += `<div style="margin-top:8px;padding:8px 12px;background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px;font-size:11px;color:#92400e;font-weight:600">
-        ⚠️ ${unscheduled.length} pengguna belum memiliki jadwal. Download ulang template untuk mendapatkan data terbaru, isi jadwal mereka, lalu upload kembali.
-      </div>`;
-    }
-    tableEl.innerHTML = html;
-    savedEl.style.display = '';
+    _savedScheduleCache = await getHolidaySchedule();
+    scheduleEditMode = false;
+    scheduleEditData = null;
+    setScheduleEditButtons(false);
+    renderSavedSchedule();
   }catch(e){ savedEl.style.display='none'; }
 }
 window.loadSavedScheduleDisplay = loadSavedScheduleDisplay;
+
+// Atur tampilan tombol Edit / Simpan / Batal + hint.
+function setScheduleEditButtons(editing){
+  const ids = {edit:'h-edit-schedule-btn', save:'h-save-edit-btn', cancel:'h-cancel-edit-btn', hint:'h-edit-hint'};
+  const eb=document.getElementById(ids.edit), sb=document.getElementById(ids.save),
+        cb=document.getElementById(ids.cancel), hb=document.getElementById(ids.hint);
+  if(eb) eb.style.display = editing ? 'none' : '';
+  if(sb) sb.style.display = editing ? '' : 'none';
+  if(cb) cb.style.display = editing ? '' : 'none';
+  if(hb) hb.style.display = editing ? '' : 'none';
+}
+
+// Render tabel jadwal dari cache (mode lihat) atau scheduleEditData (mode edit).
+function renderSavedSchedule(){
+  const savedEl = document.getElementById('h-saved-schedule');
+  const tableEl = document.getElementById('h-saved-table');
+  if(!savedEl||!tableEl) return;
+
+  const schedule = _savedScheduleCache || {};
+  const source = scheduleEditMode ? (scheduleEditData || {}) : schedule;
+  const SESS_KEYS  = SESSIONS.map(s=>s.key);
+  const DAY_NAMES  = ['Sabtu','Ahad','Senin','Selasa','Rabu','Kamis'];
+  const DAY_INDICES= [6,0,1,2,3,4];
+
+  const activeUsers = users.filter(u => u.status !== 'cuti');
+  const origScheduledUids = new Set(Object.keys(schedule));
+
+  // Susun urutan baris: user yang ada di source (mode edit sudah berisi semua user aktif),
+  // lalu user aktif yang belum punya jadwal (hanya relevan di mode lihat).
+  const rows = [];
+  Object.keys(source).forEach(uid=>{
+    const user = users.find(u=>u.id===uid);
+    rows.push({uid, label:user?(user.name||user.username||uid):uid, week:source[uid]||{}, unscheduled:!origScheduledUids.has(uid)});
+  });
+  const sourceUids = new Set(Object.keys(source));
+  const unscheduled = activeUsers.filter(u => !sourceUids.has(u.id));
+  unscheduled.forEach(user=>{
+    rows.push({uid:user.id, label:user.name||user.username||user.id, week:{}, unscheduled:true});
+  });
+
+  if(rows.length === 0){ savedEl.style.display='none'; return; }
+  _scheduleRowUids = rows.map(r=>r.uid);
+
+  // Header baris 1: hari
+  let dayHdr = `<th rowspan="2" style="padding:4px 6px;background:var(--amber);color:#fff;border:1px solid var(--border);vertical-align:middle">Nama</th>`;
+  DAY_NAMES.forEach(d=>{
+    dayHdr += `<th colspan="${SESS_KEYS.length}" style="padding:3px 4px;background:var(--amber);color:#fff;border:1px solid var(--border);text-align:center;font-size:11px">${d}</th>`;
+  });
+  let sessHdr = DAY_NAMES.flatMap(()=>SESS_KEYS.map(s=>`<th style="padding:2px 3px;background:var(--amber2);color:#fff;border:1px solid var(--border);font-size:9px">${s}</th>`)).join('');
+  let html = `<table style="border-collapse:collapse;font-size:11px"><thead>
+    <tr>${dayHdr}</tr><tr>${sessHdr}</tr>
+  </thead><tbody>`;
+
+  rows.forEach((row, ri)=>{
+    const rowBg = (!scheduleEditMode && row.unscheduled) ? 'background:#fffbeb' : '';
+    const nameColor = (row.unscheduled && !scheduleEditMode) ? 'color:#d97706' : '';
+    const badge = row.unscheduled
+      ? ` <span style="font-size:10px;background:#fef3c7;color:#d97706;border:1px solid #fde68a;border-radius:6px;padding:1px 5px;margin-left:4px">⚠️ Belum diatur</span>`
+      : '';
+    let cells = `<td style="padding:3px 6px;border:1px solid var(--border);font-weight:600;white-space:nowrap;${nameColor}">${row.label}${badge}</td>`;
+    DAY_NAMES.forEach((_,di)=>{
+      const dayIdx = DAY_INDICES[di];
+      const dayData = row.week[dayIdx] || {};
+      SESS_KEYS.forEach(s=>{
+        const on = dayData[s] === true;
+        if(scheduleEditMode){
+          cells += `<td id="sc-${ri}-${dayIdx}-${s}" onclick="toggleScheduleCell(${ri},${dayIdx},'${s}')" title="Klik untuk ubah" style="padding:2px 3px;border:1px solid var(--border);text-align:center;cursor:pointer;user-select:none;color:${on?'var(--sage2)':'var(--muted)'};${on?'background:#f0fdf4':''}">${on?'✅':'—'}</td>`;
+        } else {
+          const c = on ? 'var(--sage2)' : (row.unscheduled ? '#d97706' : 'var(--muted)');
+          cells += `<td style="padding:2px 3px;border:1px solid var(--border);text-align:center;color:${c}">${on?'✅':'—'}</td>`;
+        }
+      });
+    });
+    html += `<tr style="${rowBg}">${cells}</tr>`;
+  });
+
+  html += '</tbody></table>';
+
+  if(!scheduleEditMode){
+    const cnt = unscheduled.length;
+    if(cnt > 0){
+      html += `<div style="margin-top:8px;padding:8px 12px;background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px;font-size:11px;color:#92400e;font-weight:600">
+        ⚠️ ${cnt} pengguna belum memiliki jadwal. Klik <b>✏️ Edit di Tempat</b> untuk mengaturnya langsung, atau upload template.
+      </div>`;
+    }
+  }
+  tableEl.innerHTML = html;
+  savedEl.style.display = '';
+}
+window.renderSavedSchedule = renderSavedSchedule;
+
+// Masuk mode edit: salin jadwal saat ini, siapkan slot kosong untuk semua user aktif.
+async function toggleScheduleEdit(){
+  try{
+    if(!_savedScheduleCache) _savedScheduleCache = await getHolidaySchedule();
+    scheduleEditData = JSON.parse(JSON.stringify(_savedScheduleCache || {}));
+    const DAY_INDICES=[6,0,1,2,3,4];
+    users.filter(u=>u.status!=='cuti').forEach(u=>{
+      if(!scheduleEditData[u.id]){
+        const wk={}; DAY_INDICES.forEach(di=>wk[di]={}); scheduleEditData[u.id]=wk;
+      }
+    });
+    scheduleEditMode = true;
+    setScheduleEditButtons(true);
+    renderSavedSchedule();
+  }catch(e){ showToast('Gagal memuat jadwal untuk diedit: '+e.message, false); }
+}
+window.toggleScheduleEdit = toggleScheduleEdit;
+
+// Toggle satu sel jadwal (update data + tampilan sel saja, tanpa render ulang penuh).
+function toggleScheduleCell(rowIdx, dayIdx, sess){
+  if(!scheduleEditMode || !scheduleEditData) return;
+  const uid = _scheduleRowUids[rowIdx];
+  if(!uid) return;
+  if(!scheduleEditData[uid]) scheduleEditData[uid] = {};
+  if(!scheduleEditData[uid][dayIdx]) scheduleEditData[uid][dayIdx] = {};
+  const nv = !scheduleEditData[uid][dayIdx][sess];
+  scheduleEditData[uid][dayIdx][sess] = nv;
+  const cell = document.getElementById(`sc-${rowIdx}-${dayIdx}-${sess}`);
+  if(cell){
+    cell.textContent = nv ? '✅' : '—';
+    cell.style.color = nv ? 'var(--sage2)' : 'var(--muted)';
+    cell.style.background = nv ? '#f0fdf4' : '';
+  }
+}
+window.toggleScheduleCell = toggleScheduleCell;
+
+// Batalkan edit: buang perubahan, kembali ke mode lihat.
+function cancelScheduleEdit(){
+  scheduleEditMode = false;
+  scheduleEditData = null;
+  setScheduleEditButtons(false);
+  renderSavedSchedule();
+}
+window.cancelScheduleEdit = cancelScheduleEdit;
+
+// Simpan hasil edit ke Firestore. Hanya memperbarui pola jadwal (config/schedule);
+// TIDAK menyentuh data kehadiran yang sudah tercatat.
+async function saveScheduleEdits(){
+  if(!scheduleEditMode || !scheduleEditData){ return; }
+  showLoading('Menyimpan perubahan jadwal...');
+  try{
+    // Buang slot kosong untuk user yang sebelumnya belum punya jadwal & tidak diberi sesi apa pun,
+    // agar status "belum diatur" mereka tidak berubah tanpa sengaja.
+    const orig = _savedScheduleCache || {};
+    const cleaned = {};
+    Object.entries(scheduleEditData).forEach(([uid, week])=>{
+      const wasScheduled = !!orig[uid];
+      const hasAnySession = Object.values(week||{}).some(day=>Object.values(day||{}).some(Boolean));
+      if(wasScheduled || hasAnySession) cleaned[uid] = week;
+    });
+    await setDoc(doc(fs,'config','schedule'), cleaned);
+    _savedScheduleCache = JSON.parse(JSON.stringify(cleaned));
+    globalSchedule = _savedScheduleCache; // sinkronkan cache validasi sesi
+    scheduleEditMode = false;
+    scheduleEditData = null;
+    setScheduleEditButtons(false);
+    renderSavedSchedule();
+    hideLoading();
+    showToast('✅ Perubahan jadwal disimpan! Data kehadiran yang sudah ada tidak diubah.');
+  }catch(e){ hideLoading(); showToast('Gagal simpan: '+e.message, false); }
+}
+window.saveScheduleEdits = saveScheduleEdits;
 
 
 
