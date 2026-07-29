@@ -1,7 +1,7 @@
 {
-  "name": "Jurnal Mengajar Guru — MTs Al Imam Asy-Syafi'i Tarakan",
-  "short_name": "Jurnal Mengajar",
-  "description": "Aplikasi jurnal mengajar guru & absensi siswa — Kurikulum Merdeka Kemenag berbasis KBC (Kurikulum Berbasis Cinta)",
+  "name": "Daftar Hadir Guru — Ponpes Al Imam Asy-Syafi'i Tarakan",
+  "short_name": "Daftar Hadir Guru",
+  "description": "Aplikasi pencatatan kehadiran mengajar halaqah untuk Pondok Pesantren Al Imam Asy-Syafi'i Tarakan",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

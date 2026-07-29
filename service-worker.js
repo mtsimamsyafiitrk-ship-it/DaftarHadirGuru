@@ -1,10 +1,14 @@
 // ── SERVICE WORKER ──
-// Strategi: online-first dengan fallback cache untuk shell aplikasi.
-// Data aktual selalu diambil dari Firestore.
+// Strategi: online-first dengan fallback cache untuk halaman utama.
+// Cocok untuk aplikasi yang butuh data real-time dari Firestore,
+// tapi tetap bisa diinstal sebagai PWA.
 
-const CACHE_VERSION = 'jm-v1';
-const CACHE_NAME = `jurnal-mengajar-${CACHE_VERSION}`;
+const CACHE_VERSION = 'v2';
+const CACHE_NAME = `dhg-${CACHE_VERSION}`;
 
+// File yang di-precache saat instalasi (shell aplikasi).
+// Ini memastikan app bisa dibuka kembali (shell-nya) meski sinyal buruk;
+// data aktual tetap fetch dari Firestore.
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -14,6 +18,7 @@ const PRECACHE_URLS = [
   './js/utils.js',
   './js/ui-helpers.js',
   './js/firebase.js',
+  './js/hari-libur.js',
   './assets/logo.png',
   './assets/icon.png',
   './icons/icon-192.png',
@@ -24,14 +29,16 @@ const PRECACHE_URLS = [
   './manifest.webmanifest'
 ];
 
+// ── Install: precache shell ──
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(PRECACHE_URLS))
-      .then(() => self.skipWaiting())
+      .then(() => self.skipWaiting()) // aktifkan SW baru segera
   );
 });
 
+// ── Activate: bersihkan cache lama ──
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
@@ -42,20 +49,60 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// ── Fetch: stale-while-revalidate untuk shell aplikasi ──
+// Aset milik origin (HTML, app.js, modul JS, CSS, ikon) dilayani LANGSUNG dari cache
+// bila ada, lalu diperbarui di latar belakang. Ini membuat load terasa instan pada
+// kunjungan berikutnya, alih-alih menunggu unduh ulang dari jaringan tiap kali.
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-  // Hanya tangani request GET same-origin (shell aplikasi).
-  if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
+  const req = event.request;
 
+  // Hanya tangani GET
+  if (req.method !== 'GET') return;
+
+  // Jangan cache request ke Firestore/Firebase/EmailJS/CDN pihak ketiga —
+  // selalu biarkan network yang urus (karena datanya dinamis / punya auth).
+  const url = new URL(req.url);
+  const isThirdParty =
+    url.hostname.includes('firestore.googleapis.com') ||
+    url.hostname.includes('firebase') ||
+    url.hostname.includes('google') ||
+    url.hostname.includes('gstatic') ||
+    url.hostname.includes('emailjs') ||
+    url.hostname.includes('cloudflare') ||
+    url.hostname.includes('jsdelivr');
+
+  if (isThirdParty) {
+    return; // biarkan browser handle normal
+  }
+
+  // Aset dalam origin kita: stale-while-revalidate.
   event.respondWith(
-    fetch(event.request)
-      .then((resp) => {
-        const copy = resp.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
-        return resp;
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.match(req).then((cached) => {
+        // Revalidasi di latar: ambil versi terbaru & perbarui cache.
+        const networkFetch = fetch(req)
+          .then((response) => {
+            if (response && response.status === 200 && response.type === 'basic') {
+              cache.put(req, response.clone());
+            }
+            return response;
+          })
+          .catch(() => null);
+
+        // Ada di cache → kembalikan segera (instan). Tidak ada → tunggu network.
+        if (cached) {
+          event.waitUntil(networkFetch); // biarkan update latar selesai
+          return cached;
+        }
+        return networkFetch.then((resp) => {
+          if (resp) return resp;
+          if (req.mode === 'navigate') return cache.match('./index.html');
+          return new Response('Offline — tidak ada data di cache', {
+            status: 503,
+            statusText: 'Service Unavailable'
+          });
+        });
       })
-      .catch(() =>
-        caches.match(event.request).then((cached) => cached || caches.match('./index.html'))
-      )
+    )
   );
 });

@@ -3,238 +3,803 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>Jurnal Mengajar Guru | MTs Al Imam Asy-Syafi'i Tarakan</title>
+  <title>Daftar Hadir Mengajar | Ponpes Al Imam Asy-Syafi'i Tarakan</title>
 
+  <!-- Favicon untuk browser desktop -->
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"/>
   <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png"/>
 
-  <!-- PWA -->
+  <!-- PWA: manifest -->
   <link rel="manifest" href="manifest.webmanifest"/>
   <meta name="theme-color" content="#5a9b86"/>
+
+  <!-- PWA: iOS -->
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
-  <meta name="apple-mobile-web-app-title" content="Jurnal Mengajar"/>
+  <meta name="apple-mobile-web-app-title" content="Daftar Hadir Guru"/>
+
+  <!-- PWA: Windows -->
+  <meta name="msapplication-TileColor" content="#5a9b86"/>
+  <meta name="msapplication-TileImage" content="icons/icon-192.png"/>
 
   <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<!-- EmailJS SDK (defer: tidak menghambat render awal) -->
+<script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
 <!-- LOADING -->
 <div id="loading" class="loading-overlay">
   <div class="spinner"></div>
   <div id="loading-msg" style="color:var(--sage2);font-weight:800;font-size:15px">Memuat aplikasi...</div>
+  <div style="color:var(--muted);font-size:12px;margin-top:6px;font-weight:600">Mohon tunggu sebentar</div>
 </div>
 
 <!-- TOAST -->
 <div id="toast" class="toast"></div>
 
-<!-- ═══════════ LOGIN ═══════════ -->
+<!-- ══════════════════ LOGIN ══════════════════ -->
 <div id="screen-login" class="screen">
   <div class="login-wrap">
-    <div class="login-card">
-      <img src="assets/logo.png" alt="Logo" class="login-logo"/>
-      <div class="login-title">Jurnal Mengajar Guru</div>
-      <div class="login-sub" id="login-school">MTs Al Imam Asy-Syafi'i Tarakan</div>
-
-      <div class="tabbar" style="margin:18px 0 14px">
-        <button id="tab-role-guru" class="btn-tab active" onclick="setLoginRole('guru')">👨‍🏫 Guru</button>
-        <button id="tab-role-admin" class="btn-tab" onclick="setLoginRole('admin')">🛡️ Admin</button>
+    <div class="login-box">
+      <div class="login-logo">
+        <img src="assets/logo.png" style="width:90px;height:90px;border-radius:50%;object-fit:cover;margin:0 auto 12px;display:block;box-shadow:0 6px 20px rgba(90,155,134,0.35)"/>
+        <h1>DAFTAR HADIR MENGAJAR/HALAQAH</h1>
+        <p>Pondok Pesantren Al Imam Asy-Syafi'i Tarakan</p>
       </div>
-
-      <div class="input-wrap">
-        <label>Username</label>
-        <input id="l-user" class="input" placeholder="Masukkan username" autocomplete="username"/>
-      </div>
-      <div class="input-wrap">
-        <label>Password</label>
-        <input id="l-pass" class="input" type="password" placeholder="Masukkan password" autocomplete="current-password"/>
-        <button class="eye" onclick="togglePw('l-pass',this)">👁️</button>
-      </div>
-      <div id="login-err" class="err-msg"></div>
-      <button class="btn btn-sage" style="width:100%;padding:13px;font-size:14px" onclick="doLogin()">Masuk</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════ GURU ═══════════ -->
-<div id="screen-guru" class="screen">
-  <div class="header">
-    <div class="hinner">
-      <div class="logo-gem">📖</div>
-      <div style="flex:1;min-width:0">
-        <div class="app-title">Jurnal Mengajar</div>
-        <div class="app-sub" id="g-header-sub"></div>
-      </div>
-      <button class="btn-icon" title="Keluar" onclick="doLogout()">🚪</button>
-    </div>
-  </div>
-  <div class="body">
-    <div id="page-g-home" class="page"></div>
-
-    <div id="page-g-jurnal" class="page">
-      <div class="card card-sage">
-        <div class="section-title" id="g-jurnal-form-title">📝 Isi Jurnal Mengajar</div>
-        <div class="grid2">
-          <div class="input-wrap"><label>Tanggal</label><input id="j-tanggal" class="input" type="date"/></div>
-          <div class="input-wrap"><label>Jam ke</label><input id="j-jamke" class="input" placeholder="cth: 1-2"/></div>
+      <div class="login-card">
+        <div class="login-role-tabs">
+          <button class="login-role-tab active" id="rtab-user" onclick="setLoginRole('user')"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Pengguna</button>
+          <button class="login-role-tab" id="rtab-admin" onclick="setLoginRole('admin')"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span> Admin</button>
         </div>
-        <div class="grid2">
-          <div class="input-wrap"><label>Rombel / Kelas</label><select id="j-rombel" class="input" onchange="renderAbsenList()"></select></div>
-          <div class="input-wrap"><label>Mata Pelajaran</label><select id="j-mapel" class="input"></select></div>
-        </div>
-        <div class="input-wrap"><label>Materi / Topik Pembelajaran</label><input id="j-materi" class="input" placeholder="Bab / elemen / topik yang diajarkan"/></div>
-        <div class="input-wrap"><label>Tujuan Pembelajaran (TP)</label><textarea id="j-tujuan" class="input" rows="2" placeholder="Tujuan pembelajaran sesuai CP/ATP"></textarea></div>
-        <div class="input-wrap"><label>Kegiatan Pembelajaran</label><textarea id="j-kegiatan" class="input" rows="2" placeholder="Ringkasan kegiatan (pendahuluan, inti, penutup)"></textarea></div>
-        <div class="grid2">
-          <div class="input-wrap"><label>Metode / Model</label><select id="j-metode" class="input"></select></div>
-          <div class="input-wrap"><label>Asesmen</label><select id="j-asesmen" class="input"></select></div>
-        </div>
-
+        <div id="login-err" class="login-err"></div>
         <div class="input-wrap">
-          <label>💚 Integrasi Nilai Cinta (KBC)</label>
-          <div id="j-kbc" class="kbc-wrap"></div>
+          <label>Username</label>
+          <input id="l-user" class="input" placeholder="Masukkan username..." onkeydown="if(event.key==='Enter')doLogin()"/>
         </div>
-        <div class="input-wrap"><label>Wujud Penerapan Nilai Cinta</label><textarea id="j-kbc-catatan" class="input" rows="2" placeholder="cth: Membuka pelajaran dengan doa & murajaah, menjaga kebersihan kelas..."></textarea></div>
-        <div class="input-wrap"><label>Refleksi / Catatan / Kendala</label><textarea id="j-refleksi" class="input" rows="2" placeholder="Refleksi pembelajaran, kendala, tindak lanjut (opsional)"></textarea></div>
-      </div>
-
-      <div class="card">
-        <div class="section-title">✅ Absensi Siswa <span id="absen-counter" class="badge-mini"></span></div>
-        <div class="hint">Pilih rombel di atas, lalu tandai status tiap siswa. Default: Hadir.</div>
-        <div style="display:flex;gap:8px;margin:10px 0">
-          <button class="btn-ghost" onclick="setSemuaAbsen('H')">✔️ Semua Hadir</button>
+        <div class="input-wrap">
+          <label>Password</label>
+          <input id="l-pass" class="input" type="password" placeholder="Masukkan password..." onkeydown="if(event.key==='Enter')doLogin()"/>
+          <button class="eye" onclick="togglePw('l-pass',this)">👁️</button>
         </div>
-        <div id="absen-list"></div>
+        <button class="btn btn-sage" style="width:100%;margin-top:4px;padding:13px;font-size:15px" onclick="doLogin()">Masuk →</button>
+        <div style="text-align:center;margin-top:14px">
+          <a href="#" onclick="showForgotPw();return false;" style="font-size:12px;color:var(--sage2);text-decoration:underline;cursor:pointer">Lupa password? Ganti password</a>
+        </div>
       </div>
+    </div>
+  </div>
+</div>
 
-      <div style="display:flex;gap:10px">
-        <button id="j-batal" class="btn btn-gray" style="flex:1;display:none" onclick="resetJurnalForm()">Batal</button>
-        <button class="btn btn-sage" style="flex:2;padding:13px;font-size:14px" onclick="simpanJurnal()">💾 Simpan Jurnal</button>
+<!-- ══════════════════ MODAL: LUPA PASSWORD ══════════════════ -->
+<div id="modal-forgot-pw" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:var(--card);border-radius:20px;padding:28px;width:90%;max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
+    <div style="font-weight:800;font-size:17px;margin-bottom:6px;color:var(--text)">🔑 Lupa Password</div>
+
+    <!-- Step 1: input email -->
+    <div id="fpw-step1">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Masukkan email yang terdaftar. Kami akan mengirimkan kode verifikasi.</p>
+      <div class="input-wrap"><label>Email Terdaftar</label><input id="fpw-email" class="input" type="email" placeholder="contoh@email.com"/></div>
+      <div id="fpw-err1" class="login-err" style="display:none"></div>
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <button class="btn" style="flex:1;background:var(--muted-bg);color:var(--text)" onclick="hideForgotPw()">Batal</button>
+        <button class="btn btn-sage" style="flex:1" onclick="fpwSendOtp()">Kirim Kode →</button>
       </div>
     </div>
 
-    <div id="page-g-riwayat" class="page"></div>
-    <div id="page-g-rekap" class="page"></div>
-    <div id="page-g-akun" class="page"></div>
-  </div>
+    <!-- Step 2: input OTP -->
+    <div id="fpw-step2" style="display:none">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Kode 6 digit telah dikirim ke email Anda. Masukkan kode tersebut di bawah ini.</p>
+      <div class="input-wrap"><label>Kode Verifikasi</label><input id="fpw-otp" class="input" placeholder="Masukkan 6 digit kode..." maxlength="6" style="letter-spacing:4px;text-align:center;font-size:18px;font-weight:bold"/></div>
+      <div id="fpw-err2" class="login-err" style="display:none"></div>
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <button class="btn" style="flex:1;background:var(--muted-bg);color:var(--text)" onclick="fpwBackStep1()">← Kembali</button>
+        <button class="btn btn-sage" style="flex:1" onclick="fpwVerifyOtp()">Verifikasi →</button>
+      </div>
+      <div style="text-align:center;margin-top:10px">
+        <a href="#" onclick="fpwSendOtp();return false;" style="font-size:11px;color:var(--sage2)">Kirim ulang kode</a>
+      </div>
+    </div>
 
-  <nav class="navbar">
-    <button class="nav-btn active" data-page="home" onclick="gNav('home')"><span>🏠</span>Beranda</button>
-    <button class="nav-btn" data-page="jurnal" onclick="gNav('jurnal')"><span>📝</span>Jurnal</button>
-    <button class="nav-btn" data-page="riwayat" onclick="gNav('riwayat')"><span>📚</span>Riwayat</button>
-    <button class="nav-btn" data-page="rekap" onclick="gNav('rekap')"><span>📊</span>Rekap</button>
-    <button class="nav-btn" data-page="akun" onclick="gNav('akun')"><span>👤</span>Akun</button>
-  </nav>
+    <!-- Step 3: input password baru -->
+    <div id="fpw-step3" style="display:none">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Verifikasi berhasil! Masukkan password baru Anda.</p>
+      <div class="input-wrap"><label>Password Baru</label><input id="fpw-new" class="input" type="password" placeholder="Password baru..."/><button class="eye" onclick="togglePw('fpw-new',this)">👁️</button></div>
+      <div class="input-wrap"><label>Konfirmasi Password</label><input id="fpw-conf" class="input" type="password" placeholder="Ulangi password baru..."/><button class="eye" onclick="togglePw('fpw-conf',this)">👁️</button></div>
+      <div id="fpw-err3" class="login-err" style="display:none"></div>
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <button class="btn" style="flex:1;background:var(--muted-bg);color:var(--text)" onclick="hideForgotPw()">Batal</button>
+        <button class="btn btn-sage" style="flex:1" onclick="fpwSaveNew()">💾 Simpan</button>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- ═══════════ ADMIN ═══════════ -->
-<div id="screen-admin" class="screen">
+
+<!-- ══════════════════ MODAL: NOTIF HARI LIBUR (pengguna) ══════════════════ -->
+<div id="modal-holiday-notif" onclick="if(event.target===this)closeHolidayNotif()">
+  <div class="holiday-notif-box">
+    <div class="holiday-notif-header">
+      <span class="holiday-notif-icon">🌙</span>
+      <div class="holiday-notif-title">Hari Libur!</div>
+    </div>
+    <div class="holiday-notif-body">
+      <div class="holiday-notif-msg">Sesi otomatis terisi.<br>Tidak perlu mengisi kehadiran di sesi ini.</div>
+      <div class="holiday-notif-sub">Kehadiran pada hari libur telah dikelola oleh admin.<br>Anda tidak perlu melakukan apa pun.</div>
+      <button class="holiday-notif-btn" onclick="closeHolidayNotif()">✔ Mengerti</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MODAL: HARI LIBUR ══════════════════ -->
+<div id="modal-holiday" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:16px 0">
+  <div style="background:var(--card);border-radius:20px;padding:24px;width:92%;max-width:480px;box-shadow:0 8px 32px rgba(0,0,0,0.2);margin:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-weight:800;font-size:17px;color:var(--text)">🗓️ Hari Libur & Jadwal</div>
+      <button onclick="closeHolidayModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+
+    <!-- Tab -->
+    <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">
+      <button id="htab-libur" onclick="switchHTab('libur')" style="flex:1;min-width:0;padding:8px 6px;border-radius:10px;border:none;font-weight:700;font-size:12px;background:linear-gradient(135deg,#e8956d,#c4634a);color:#fff;cursor:pointer">🗓️ Input Libur</button>
+      <button id="htab-jadwal" onclick="switchHTab('jadwal')" style="flex:1;min-width:0;padding:8px 6px;border-radius:10px;border:2px solid var(--border);font-weight:700;font-size:12px;background:var(--card);color:var(--muted);cursor:pointer">📋 Jadwal Baku</button>
+      <button id="htab-rincian" onclick="switchHTab('rincian')" style="flex:1;min-width:0;padding:8px 6px;border-radius:10px;border:2px solid var(--border);font-weight:700;font-size:12px;background:var(--card);color:var(--muted);cursor:pointer">📅 Rincian Libur</button>
+    </div>
+
+    <!-- Panel: Input Hari Libur -->
+    <div id="hpanel-libur">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Pilih tanggal libur. Kehadiran semua sesi sesuai jadwal akan otomatis terisi untuk semua pengguna aktif.</div>
+      
+      <!-- Mode pilih -->
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button id="hmode-range" onclick="switchHMode('range')" style="flex:1;padding:7px;border-radius:8px;border:none;font-weight:700;font-size:12px;background:var(--sage);color:#fff;cursor:pointer">📅 Rentang Tanggal</button>
+        <button id="hmode-pick" onclick="switchHMode('pick')" style="flex:1;padding:7px;border-radius:8px;border:2px solid var(--border);font-weight:700;font-size:12px;background:var(--card);color:var(--muted);cursor:pointer">🗓️ Pilih Hari</button>
+      </div>
+
+      <!-- Mode: Rentang Tanggal -->
+      <div id="hm-range">
+        <div style="display:flex;gap:10px">
+          <div class="input-wrap" style="flex:1;margin-bottom:10px"><label>Dari Tanggal</label><input id="h-date-from" class="input" type="date"/></div>
+          <div class="input-wrap" style="flex:1;margin-bottom:10px"><label>Sampai Tanggal</label><input id="h-date-to" class="input" type="date"/></div>
+        </div>
+      </div>
+
+      <!-- Mode: Pilih Hari via Kalender -->
+      <div id="hm-pick" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <button onclick="hCalPrev()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--sage2)">‹</button>
+          <div id="hcal-label" style="font-weight:800;font-size:14px;color:var(--text)"></div>
+          <button onclick="hCalNext()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--sage2)">›</button>
+        </div>
+        <div id="hcal-grid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:3px;margin-bottom:10px"></div>
+        <div id="hcal-selected" style="font-size:11px;color:var(--sage2);font-weight:600;min-height:18px"></div>
+      </div>
+
+      <div id="h-err" style="display:none;color:var(--rose2);font-size:12px;margin-bottom:10px"></div>
+      
+      <div style="background:var(--muted-bg);border-radius:10px;padding:10px;margin-bottom:14px;font-size:12px;color:var(--muted)">
+        ⚠️ Hanya tanggal yang belum memiliki data akan diisi. Data yang sudah ada tidak akan ditimpa.
+      </div>
+      
+      <button class="btn" style="width:100%;background:linear-gradient(135deg,#e8956d,#c4634a);color:#fff;padding:12px;font-weight:800" onclick="applyHolidays()">✅ Terapkan Kehadiran Otomatis</button>
+    </div>
+
+    <!-- Panel: Jadwal Pelajaran -->
+    <div id="hpanel-jadwal" style="display:none">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Upload jadwal pelajaran untuk menentukan sesi mana yang otomatis terisi saat hari libur diterapkan. Saat mengganti jadwal (mis. tahun ajaran baru), tentukan <b>Tanggal Mulai Berlaku</b> agar kehadiran & hitungan jam sebelum tanggal itu tidak berubah.</div>
+      
+      <div style="background:var(--muted-bg);border-radius:10px;padding:12px;margin-bottom:14px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:6px">Format File Excel/CSV:</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.7">
+          Kolom: <b>Username</b>, <b>Nama</b>, lalu kolom <b>Hari_Sesi</b> (contoh: Senin_H1, Senin_J1, ..., Sabtu_S2)<br>
+          Isi <b>1</b> jika ikut sesi tersebut pada hari itu, kosong/0 jika tidak.<br>
+          Baris pertama = header hari, baris kedua = header kolom.
+        </div>
+        <button onclick="downloadScheduleTemplate()" style="margin-top:8px;padding:6px 12px;background:var(--sage);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">⬇️ Download Template</button>
+      </div>
+
+      <div class="input-wrap" style="margin-bottom:12px">
+        <label>Upload File Jadwal (.xlsx / .csv)</label>
+        <input id="h-schedule-file" class="input" type="file" accept=".xlsx,.csv" onchange="previewSchedule(event)" style="padding:8px"/>
+      </div>
+
+      <div id="h-schedule-preview" style="display:none;margin-bottom:14px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--sage2)">Preview Jadwal:</div>
+        <div id="h-schedule-table" style="overflow-x:auto;font-size:11px"></div>
+      </div>
+
+      <div id="h-schedule-effective-wrap" class="input-wrap" style="display:none;margin-bottom:12px">
+        <label>Tanggal Mulai Berlaku (tahun ajaran baru)</label>
+        <input id="h-schedule-effective-date" class="input" type="date" style="padding:8px"/>
+        <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:6px">
+          Jadwal baru hanya diterapkan ke hari libur pada tanggal ini <b>dan setelahnya</b>.
+          Kehadiran & hitungan jam sebelum tanggal ini <b>tidak akan diubah</b>.
+        </div>
+      </div>
+
+      <div id="h-jadwal-err" style="display:none;color:var(--rose2);font-size:12px;margin-bottom:10px"></div>
+      <button id="h-save-schedule-btn" class="btn btn-sage" style="width:100%;display:none" onclick="saveSchedule()">💾 Simpan Jadwal</button>
+
+      <!-- Jadwal tersimpan -->
+      <div id="h-saved-schedule" style="display:none;margin-top:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <div style="font-weight:700;font-size:13px;color:var(--amber2)">📋 Jadwal Tersimpan:</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button id="h-edit-schedule-btn" onclick="toggleScheduleEdit()" style="padding:6px 12px;background:var(--sage);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">✏️ Edit di Tempat</button>
+            <button id="h-save-edit-btn" onclick="saveScheduleEdits()" style="display:none;padding:6px 12px;background:var(--sage2);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">💾 Simpan Perubahan</button>
+            <button id="h-cancel-edit-btn" onclick="cancelScheduleEdit()" style="display:none;padding:6px 12px;background:#e2626d;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">✕ Batal</button>
+          </div>
+        </div>
+        <div id="h-edit-hint" style="display:none;margin-bottom:8px;padding:8px 12px;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:8px;font-size:11px;color:#166534;font-weight:600;line-height:1.6">
+          Klik sel ✅/— untuk menyalakan/mematikan sesi pada hari itu. Saat <b>Simpan</b>, jika ada perubahan Anda akan ditanya apakah perubahan itu ingin diterapkan <b>mundur</b> ke tanggal sejak jadwal terakhir berlaku — hanya sesi yang berubah yang disesuaikan, sesi &amp; data lain tidak disentuh.
+        </div>
+        <div id="h-saved-table" style="overflow-x:auto;font-size:11px"></div>
+      </div>
+    </div>
+
+    <!-- Panel: Rincian Hari Libur -->
+    <div id="hpanel-rincian" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px">
+        <div style="font-size:12px;color:var(--muted);font-weight:600;line-height:1.5">Semua hari libur yang telah ditentukan dan diterapkan oleh admin.</div>
+        <button onclick="refreshRincianLibur()" style="flex-shrink:0;padding:6px 12px;background:var(--sage3);color:var(--sage2);border:1px solid var(--sage4);border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">🔄 Muat Ulang</button>
+      </div>
+
+      <!-- Filter bulan/tahun -->
+      <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+        <select id="hr-filter-year" onchange="renderRincianLibur()" style="flex:1;padding:7px 10px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text);background:var(--bg2)"></select>
+        <select id="hr-filter-month" onchange="renderRincianLibur()" style="flex:1;padding:7px 10px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text);background:var(--bg2)">
+          <option value="-1">Semua Bulan</option>
+          <option value="0">Januari</option><option value="1">Februari</option><option value="2">Maret</option>
+          <option value="3">April</option><option value="4">Mei</option><option value="5">Juni</option>
+          <option value="6">Juli</option><option value="7">Agustus</option><option value="8">September</option>
+          <option value="9">Oktober</option><option value="10">November</option><option value="11">Desember</option>
+        </select>
+      </div>
+
+      <!-- Ringkasan -->
+      <div id="hr-summary" style="display:none;background:linear-gradient(135deg,#fff1f2,#ffe4e6);border:1px solid #fca5a5;border-radius:12px;padding:12px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:28px">🌙</div>
+          <div>
+            <div id="hr-summary-count" style="font-weight:900;font-size:22px;color:#dc2626;font-family:'Amiri',serif"></div>
+            <div id="hr-summary-label" style="font-size:12px;color:#ef4444;font-weight:700"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div id="hr-loading" style="text-align:center;padding:24px;color:var(--muted);font-size:13px;font-weight:600">
+        <div style="font-size:24px;margin-bottom:8px">⏳</div>Memuat data hari libur...
+      </div>
+
+      <!-- Kosong -->
+      <div id="hr-empty" style="display:none;text-align:center;padding:28px 16px;color:var(--muted)">
+        <div style="font-size:36px;margin-bottom:10px">📭</div>
+        <div style="font-weight:700;font-size:13px">Belum ada hari libur yang ditentukan</div>
+        <div style="font-size:12px;margin-top:4px">Gunakan tab "Input Libur" untuk menambahkan hari libur.</div>
+      </div>
+
+      <!-- Daftar per bulan -->
+      <div id="hr-list" style="display:none"></div>
+
+      <!-- Tombol hapus semua (admin) -->
+      <div id="hr-delete-wrap" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+        <button onclick="hapusSemuaHariLibur()" style="width:100%;padding:10px;background:#fff1f2;color:#dc2626;border:1.5px solid #fca5a5;border-radius:10px;font-weight:800;font-size:12px;cursor:pointer">🗑️ Hapus Semua Hari Libur</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════ MODAL: BELUM LENGKAP ══════════════════ -->
+<div id="modal-belum-lengkap" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:16px 0">
+  <div style="background:var(--card);border-radius:20px;padding:24px;width:92%;max-width:520px;box-shadow:0 8px 32px rgba(0,0,0,0.2);margin:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="font-weight:800;font-size:17px;color:var(--text)">⚠️ Belum Lengkap</div>
+      <button onclick="closeBelumLengkapModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div id="bl-subtitle" style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:16px"></div>
+    <div id="bl-loading" style="text-align:center;padding:20px;color:var(--muted);font-weight:600">Memuat data...</div>
+    <div id="bl-empty" style="display:none;text-align:center;padding:20px">
+      <div style="font-size:40px;margin-bottom:8px">✅</div>
+      <div style="font-weight:700;color:var(--sage2)">Semua pengguna sudah lengkap!</div>
+    </div>
+    <div id="bl-list" style="display:none;max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:8px"></div>
+    <div id="bl-footer" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+      <div id="bl-count" style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:10px"></div>
+      <button onclick="kirimPengingatSemua()" class="btn" style="width:100%;background:linear-gradient(135deg,#f87171,#dc2626);color:#fff;padding:12px;font-weight:800;font-size:14px">🔔 Kirim Pengingat ke Semua</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MODAL: NOTIF PENGINGAT (untuk pengguna) ══════════════════ -->
+<div id="modal-pengingat-notif" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:24px;width:100%;max-width:360px;box-shadow:0 12px 48px rgba(245,158,11,0.25);overflow:hidden;animation:popIn .3s cubic-bezier(.34,1.56,.64,1) forwards">
+    <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);padding:28px 24px 20px;text-align:center;border-bottom:1px solid #fcd34d">
+      <span style="font-size:52px;line-height:1;margin-bottom:10px;display:block">🔔</span>
+      <div style="font-weight:900;font-size:18px;color:#92400e;font-family:Amiri,serif">Pengingat dari Admin</div>
+    </div>
+    <div style="padding:20px 24px 24px;text-align:center">
+      <div id="pengingat-msg" style="font-size:14px;color:#374151;font-weight:600;line-height:1.6;margin-bottom:16px"></div>
+      <button onclick="tutupPengingatNotif()" style="width:100%;padding:13px;border-radius:14px;border:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-weight:800;font-size:14px;cursor:pointer">Oke, Saya Akan Lengkapi 👍</button>
+    </div>
+  </div>
+</div>
+<div id="screen-admin-users" class="screen">
   <div class="header">
     <div class="hinner">
-      <div class="logo-gem">🛡️</div>
-      <div style="flex:1;min-width:0">
+      <img src="assets/logo.png" style="width:46px;height:46px;border-radius:50%;object-fit:cover;flex-shrink:0;box-shadow:0 2px 8px rgba(90,155,134,0.3)"/>
+      <div style="flex:1">
         <div class="app-title">Panel Admin</div>
-        <div class="app-sub" id="a-header-sub">Jurnal Mengajar Guru</div>
+        <div class="app-sub">Ponpes Al Imam Asy-Syafi'i Tarakan</div>
       </div>
-      <button class="btn-icon" title="Keluar" onclick="doLogout()">🚪</button>
+      <button class="btn-icon" onclick="adminNav('notif')" title="Notifikasi" style="position:relative;width:38px;height:38px;padding:8px;display:flex;align-items:center;justify-content:center;color:var(--text2)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="hadm-notif-u" style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;border-radius:50%;width:14px;height:14px;font-size:9px;font-weight:800;line-height:14px;text-align:center"></span></button>
+      <button class="btn-ghost" onclick="doLogout()">Keluar</button>
     </div>
   </div>
   <div class="body">
-    <div id="page-a-home" class="page"></div>
-    <div id="page-a-guru" class="page"></div>
-    <div id="page-a-siswa" class="page"></div>
-    <div id="page-a-jurnal" class="page"></div>
-    <div id="page-a-rekap" class="page"></div>
-    <div id="page-a-set" class="page"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="sec-title">👥 Daftar Pengguna</div>
+        <button onclick="openArchivedUsers()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:4px;line-height:1.4">📁 Arsip</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-rose" style="font-size:12px;padding:8px 14px" onclick="exportUsersPdf()">📄 Export PDF</button>
+        <button class="btn btn-sage" style="font-size:12px;padding:8px 14px" onclick="openAddUserModal()">+ Tambah</button>
+      </div>
+    </div>
+    <div id="admin-user-list"></div>
   </div>
-
-  <nav class="navbar">
-    <button class="nav-btn active" data-page="home" onclick="aNav('home')"><span>🏠</span>Beranda</button>
-    <button class="nav-btn" data-page="guru" onclick="aNav('guru')"><span>👨‍🏫</span>Guru</button>
-    <button class="nav-btn" data-page="siswa" onclick="aNav('siswa')"><span>🧑‍🎓</span>Siswa</button>
-    <button class="nav-btn" data-page="jurnal" onclick="aNav('jurnal')"><span>📖</span>Jurnal</button>
-    <button class="nav-btn" data-page="rekap" onclick="aNav('rekap')"><span>📊</span>Rekap</button>
-    <button class="nav-btn" data-page="set" onclick="aNav('set')"><span>⚙️</span>Setelan</button>
-  </nav>
+  <div class="navbar"><div class="navbar-inner">
+    <button class="nav-btn active" id="anav-users" onclick="adminNav('users')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></button>
+    <button class="nav-btn" id="anav-rekap" onclick="adminNav('rekap')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></span></button>
+    <button class="nav-btn" id="anav-keterangan" onclick="adminNav('keterangan')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></span></button>
+    <button class="nav-btn" id="anav-profile" onclick="adminNav('profile')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span></button>
+  </div></div>
 </div>
 
-<!-- ═══════════ MODALS ═══════════ -->
+<!-- ══════════════════ ADMIN: REKAPITULASI ══════════════════ -->
+<div id="screen-admin-rekap" class="screen">
+  <div class="header">
+    <div class="hinner">
+      <img src="assets/logo.png" style="width:46px;height:46px;border-radius:50%;object-fit:cover;flex-shrink:0;box-shadow:0 2px 8px rgba(90,155,134,0.3)"/>
+      <div style="flex:1">
+        <div class="app-title">Rekapitulasi</div>
+        <div class="app-sub">Kehadiran Bulanan</div>
+      </div>
+      <button class="btn-icon" onclick="adminNav('notif')" title="Notifikasi" style="position:relative;width:38px;height:38px;padding:8px;display:flex;align-items:center;justify-content:center;color:var(--text2)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="hadm-notif-r" style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;border-radius:50%;width:14px;height:14px;font-size:9px;font-weight:800;line-height:14px;text-align:center"></span></button>
+      <button class="btn-ghost" onclick="doLogout()">Keluar</button>
+    </div>
+  </div>
+  <div class="body">
+    <!-- Month/Year selector -->
+    <div class="month-nav">
+      <button class="btn-nav" onclick="rekapPrevMonth()">‹</button>
+      <div style="text-align:center">
+        <div id="rekap-month" style="font-weight:800;font-size:18px;font-family:'Amiri',serif;color:var(--text)"></div>
+        <div id="rekap-year" style="color:var(--sage2);font-size:13px;font-weight:700"></div>
+      </div>
+      <button class="btn-nav" onclick="rekapNextMonth()">›</button>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;flex-wrap:wrap">
+      <button class="btn" style="font-size:12px;padding:8px 14px;background:linear-gradient(135deg,#e8956d,#c4634a);color:#fff" onclick="openHolidayModal()">🗓️ JADWAL</button>
+      <button class="btn" style="font-size:12px;padding:8px 14px;background:linear-gradient(135deg,#f87171,#dc2626);color:#fff" onclick="openBelumLengkapModal()">⚠️ Belum Lengkap</button>
+      <button class="btn btn-teal" style="font-size:12px;padding:8px 14px" onclick="exportRekapExcel()">📊 Export Excel</button>
+      <button class="btn btn-amber" style="font-size:12px;padding:8px 14px" onclick="printRekap()">🖨️ Cetak PDF</button>
+    </div>
+    <div id="rekap-table-wrap"></div>
+  </div>
+  <div class="navbar"><div class="navbar-inner">
+    <button class="nav-btn" id="anav-users2" onclick="adminNav('users')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></button>
+    <button class="nav-btn active" id="anav-rekap2" onclick="adminNav('rekap')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></span></button>
+    <button class="nav-btn" id="anav-keterangan2" onclick="adminNav('keterangan')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></span></button>
+    <button class="nav-btn" id="anav-profile2" onclick="adminNav('profile')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span></button>
+  </div></div>
+</div>
 
-<!-- Modal tambah/edit guru -->
-<div id="modal-guru" class="modal">
-  <div class="modal-box">
-    <div class="modal-title" id="modal-guru-title">Tambah Guru</div>
-    <div class="input-wrap"><label>Nama Lengkap</label><input id="mg-nama" class="input" placeholder="Nama guru beserta gelar"/></div>
-    <div class="input-wrap"><label>NIP <span class="opt">(opsional)</span></label><input id="mg-nip" class="input" placeholder="NIP / NUPTK"/></div>
-    <div class="input-wrap"><label>Username</label><input id="mg-user" class="input" placeholder="Username untuk login" autocomplete="off"/></div>
-    <div class="input-wrap"><label>Mata Pelajaran yang Diampu</label><div id="mg-mapel" class="kbc-wrap"></div></div>
-    <div id="mg-pw-info" class="hint"></div>
-    <div class="modal-btns">
-      <button class="btn btn-gray" onclick="closeModal('modal-guru')">Batal</button>
-      <button class="btn btn-sage" onclick="simpanGuru()">Simpan</button>
+<!-- ══════════════════ ADMIN: KETERANGAN KETIDAKHADIRAN ══════════════════ -->
+<div id="screen-admin-keterangan" class="screen">
+  <div class="header">
+    <div class="hinner">
+      <div style="font-size:20px">📋</div>
+      <div style="flex:1;text-align:center;font-weight:800;font-size:16px">Keterangan Ketidakhadiran</div>
+      <button class="btn-icon" onclick="adminNav('notif')" title="Notifikasi" style="position:relative;width:38px;height:38px;padding:8px;display:flex;align-items:center;justify-content:center;color:var(--text2)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="hadm-notif-k" style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;border-radius:50%;width:14px;height:14px;font-size:9px;font-weight:800;line-height:14px;text-align:center"></span></button>
+      <button class="btn-ghost" onclick="adminNav('users')" style="font-size:12px">✕</button>
+    </div>
+  </div>
+  <div class="body">
+    <!-- Tombol Tambah -->
+    <div style="margin-bottom:14px">
+      <button class="btn btn-sage" style="width:100%;padding:12px;font-weight:800" onclick="openKetModal()">➕ Tambah Keterangan</button>
+    </div>
+    <!-- Filter bulan -->
+    <div class="month-nav" style="margin-bottom:14px">
+      <button class="btn-nav" onclick="ketPrevMonth()">‹</button>
+      <div style="text-align:center">
+        <div id="ket-month-label" style="font-weight:800;font-size:16px;font-family:'Amiri',serif;color:var(--text)"></div>
+        <div id="ket-year-label" style="color:var(--sage2);font-size:13px;font-weight:700"></div>
+      </div>
+      <button class="btn-nav" onclick="ketNextMonth()">›</button>
+    </div>
+    <!-- List keterangan -->
+    <div id="ket-list"></div>
+  </div>
+  <div class="navbar"><div class="navbar-inner">
+    <button class="nav-btn" id="anav-users-k" onclick="adminNav('users')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></button>
+    <button class="nav-btn" id="anav-rekap-k" onclick="adminNav('rekap')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></span></button>
+    <button class="nav-btn active" id="anav-keterangan-k" onclick="adminNav('keterangan')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></span></button>
+    <button class="nav-btn" id="anav-profile-k" onclick="adminNav('profile')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span></button>
+  </div></div>
+</div>
+
+<!-- Modal Tambah/Edit Keterangan -->
+<div id="modal-keterangan" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal('modal-keterangan')">
+  <div class="modal">
+    <h3 id="ket-modal-title">📋 Tambah Keterangan</h3>
+    <input type="hidden" id="ket-edit-id"/>
+
+    <!-- Pilih guru -->
+    <div class="input-wrap" style="margin-bottom:12px">
+      <label>Guru / Karyawan</label>
+      <select id="ket-user" class="input">
+        <option value="">-- Pilih --</option>
+      </select>
+    </div>
+
+    <!-- Jenis keterangan -->
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.3px">Jenis Keterangan</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="ket-type-sakit" onclick="setKetType('sakit')" style="flex:1;min-width:80px;padding:9px 6px;border-radius:10px;border:2px solid var(--border);background:var(--card);color:var(--muted);font-weight:700;font-size:12px;cursor:pointer">🤒 Sakit</button>
+        <button id="ket-type-izin" onclick="setKetType('izin')" style="flex:1;min-width:80px;padding:9px 6px;border-radius:10px;border:2px solid var(--border);background:var(--card);color:var(--muted);font-weight:700;font-size:12px;cursor:pointer">🙏 Izin</button>
+        <button id="ket-type-luar" onclick="setKetType('luar')" style="flex:1;min-width:80px;padding:9px 6px;border-radius:10px;border:2px solid var(--border);background:var(--card);color:var(--muted);font-weight:700;font-size:12px;cursor:pointer">🏫 Kegiatan Luar KBM</button>
+      </div>
+      <div id="ket-type-info" style="margin-top:8px;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;display:none"></div>
+    </div>
+
+    <!-- Tanggal -->
+    <div style="display:flex;gap:10px;margin-bottom:12px">
+      <div class="input-wrap" style="flex:1;margin-bottom:0"><label>Dari Tanggal</label><input id="ket-date-from" class="input" type="date"/></div>
+      <div class="input-wrap" style="flex:1;margin-bottom:0"><label>Sampai Tanggal</label><input id="ket-date-to" class="input" type="date"/></div>
+    </div>
+
+    <!-- Keterangan kegiatan luar - nama kegiatan -->
+    <div id="ket-kegiatan-wrap" class="input-wrap" style="display:none;margin-bottom:12px">
+      <label>Nama Kegiatan</label>
+      <input id="ket-kegiatan-nama" class="input" placeholder="Contoh: Pelatihan Kurikulum, Rapat Dinas..."/>
+    </div>
+
+    <!-- Catatan -->
+    <div class="input-wrap" style="margin-bottom:16px">
+      <label>Catatan <span style="font-size:10px;color:var(--muted)">(opsional)</span></label>
+      <input id="ket-catatan" class="input" placeholder="Keterangan tambahan..."/>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-sage" style="flex:1" onclick="saveKeterangan()">✓ Simpan</button>
+      <button class="btn btn-gray" style="flex:1" onclick="closeModal('modal-keterangan')">Batal</button>
     </div>
   </div>
 </div>
 
-<!-- Modal tambah/edit siswa -->
-<div id="modal-siswa" class="modal">
-  <div class="modal-box">
-    <div class="modal-title" id="modal-siswa-title">Tambah Siswa</div>
-    <div class="input-wrap"><label>Nama Lengkap</label><input id="ms-nama" class="input" placeholder="Nama siswa"/></div>
-    <div class="grid2">
-      <div class="input-wrap"><label>Rombel</label><select id="ms-rombel" class="input"></select></div>
-      <div class="input-wrap"><label>NISN</label><input id="ms-nisn" class="input" placeholder="NISN" inputmode="numeric"/></div>
+<!-- ══════════════════ ADMIN: PROFIL ══════════════════ -->
+<div id="screen-admin-profile" class="screen">
+  <div class="header">
+    <div class="hinner">
+      <img src="assets/logo.png" style="width:46px;height:46px;border-radius:50%;object-fit:cover;flex-shrink:0;box-shadow:0 2px 8px rgba(90,155,134,0.3)"/>
+      <div style="flex:1"><div class="app-title">Profil Admin</div><div class="app-sub">Keamanan Akun</div></div>
+      <button class="btn-icon" onclick="adminNav('notif')" title="Notifikasi" style="position:relative;width:38px;height:38px;padding:8px;display:flex;align-items:center;justify-content:center;color:var(--text2)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="hadm-notif-p" style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;border-radius:50%;width:14px;height:14px;font-size:9px;font-weight:800;line-height:14px;text-align:center"></span></button>
+      <button class="btn-ghost" onclick="doLogout()">Keluar</button>
     </div>
-    <div class="modal-btns">
-      <button class="btn btn-gray" onclick="closeModal('modal-siswa')">Batal</button>
-      <button class="btn btn-sage" onclick="simpanSiswa()">Simpan</button>
+  </div>
+  <div class="body">
+    <div class="card card-sage" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="avatar" style="width:54px;height:54px;font-size:26px;border-radius:16px">🔐</div>
+        <div>
+          <div style="font-weight:800;font-size:17px">Administrator</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">Username: <span id="ap-username-display" style="color:var(--sage2);font-weight:700">admin</span></div>
+          <div style="font-size:12px;color:var(--muted);margin-top:1px">Email: <span id="ap-email-display" style="color:var(--sage2);font-weight:700">—</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="font-weight:800;font-size:15px;color:var(--sage2);margin-bottom:16px">👤 Ganti Username & Email</div>
+      <div class="input-wrap"><label>Username Baru</label><input id="ap-uname" class="input" placeholder="Username baru..."/></div>
+      <div class="input-wrap"><label>Email</label><input id="ap-email" class="input" type="email" placeholder="Email untuk reset password..."/></div>
+      <div class="input-wrap"><label>Konfirmasi dengan Password</label><input id="ap-uname-pw" class="input" type="password" placeholder="Masukkan password saat ini..."/><button class="eye" onclick="togglePw('ap-uname-pw',this)">👁️</button></div>
+      <button class="btn btn-sage" style="width:100%;margin-top:4px" onclick="changeAdminIdentity()">💾 Simpan Username & Email</button>
+    </div>
+    <div class="card">
+      <div style="font-weight:800;font-size:15px;color:var(--amber2);margin-bottom:16px">🔑 Ganti Password Admin</div>
+      <div class="input-wrap"><label>Password Lama</label><input id="ap-old" class="input" type="password" placeholder="Password lama..."/><button class="eye" onclick="togglePw('ap-old',this)">👁️</button></div>
+      <div class="input-wrap"><label>Password Baru</label><input id="ap-new" class="input" type="password" placeholder="Password baru..."/><button class="eye" onclick="togglePw('ap-new',this)">👁️</button></div>
+      <div class="input-wrap"><label>Konfirmasi Password Baru</label><input id="ap-conf" class="input" type="password" placeholder="Ulangi password baru..."/><button class="eye" onclick="togglePw('ap-conf',this)">👁️</button></div>
+      <button class="btn btn-amber" style="width:100%;margin-top:4px" onclick="changeAdminPw()">💾 Simpan Password</button>
+    </div>
+  </div>
+  <div class="navbar"><div class="navbar-inner">
+    <button class="nav-btn" id="anav-users3" onclick="adminNav('users')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></button>
+    <button class="nav-btn" id="anav-rekap3" onclick="adminNav('rekap')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></span></button>
+    <button class="nav-btn active" id="anav-keterangan3" onclick="adminNav('keterangan')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></span></button>
+    <button class="nav-btn" id="anav-profile3" onclick="adminNav('profile')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span></button>
+  </div></div>
+</div>
+
+<!-- ══════════════════ ADMIN: LIHAT ABSENSI USER ══════════════════ -->
+<!-- ══════════════════ ADMIN: NOTIFIKASI ══════════════════ -->
+<div id="screen-admin-notif" class="screen">
+  <div class="header">
+    <div class="hinner">
+      <div style="font-size:20px">🔔</div>
+      <div style="flex:1;text-align:center;font-weight:800;font-size:16px">Notifikasi & Request Akses</div>
+      <button class="btn-ghost" onclick="adminNav('users')" style="font-size:12px">✕</button>
+    </div>
+  </div>
+  <div class="body">
+    <div id="notif-admin-list"><div class="empty" style="margin-top:40px"><div style="font-size:48px;margin-bottom:12px">🔔</div><div style="font-weight:800;font-size:16px">Tidak ada notifikasi</div><div style="font-size:13px;margin-top:5px;color:var(--muted)">Belum ada request akses dari pengguna</div></div></div>
+  </div>
+  <div class="navbar"><div class="navbar-inner">
+    <button class="nav-btn" id="anav-users-n" onclick="adminNav('users')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></button>
+    <button class="nav-btn" id="anav-rekap-n" onclick="adminNav('rekap')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></span></button>
+    <button class="nav-btn" id="anav-keterangan-n" onclick="adminNav('keterangan')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></span></button>
+    <button class="nav-btn" id="anav-profile-n" onclick="adminNav('profile')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span></button>
+  </div></div>
+</div>
+
+<div id="screen-admin-att" class="screen">
+  <div class="header">
+    <div class="hinner">
+      <button class="btn-ghost" onclick="adminNav('users')">← Kembali</button>
+      <div style="flex:1;text-align:left">
+        <div id="aa-name" style="font-weight:800;font-size:16px"></div>
+        <div id="aa-role" style="font-size:11px;color:var(--sage2);font-weight:600"></div>
+      </div>
+      <div style="width:70px"></div>
+    </div>
+    <div class="hrow" style="justify-content:space-between;margin-top:12px">
+      <button class="btn-nav" onclick="prevMonth()">‹</button>
+      <div style="text-align:center">
+        <div id="att-month2" style="font-weight:800;font-size:20px;font-family:'Amiri',serif;color:var(--text)"></div>
+        <div id="att-year2" style="color:var(--sage2);font-size:13px;font-weight:700"></div>
+      </div>
+      <button class="btn-nav" onclick="nextMonth()">›</button>
+    </div>
+    <div class="hrow" style="gap:6px;padding-bottom:4px">
+      <button class="btn-tab active" id="tab-monthly2" onclick="switchTab2('monthly')">📅 Bulanan</button>
+      <button class="btn-tab" id="tab-weekly2" onclick="switchTab2('weekly')">📆 Pekanan</button>
+      <button class="btn-tab" id="tab-recap2" onclick="switchTab2('recap')">📊 Rekap</button>
+    </div>
+  </div>
+  <div class="body">
+    <div id="view-monthly2"></div>
+    <div id="view-weekly2" style="display:none"></div>
+    <div id="view-recap2" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ══════════════════ USER: ABSENSI ══════════════════ -->
+<div id="screen-user-att" class="screen">
+  <div class="header">
+    <div class="hinner">
+      <img src="assets/logo.png" style="width:46px;height:46px;border-radius:50%;object-fit:cover;flex-shrink:0;box-shadow:0 2px 8px rgba(90,155,134,0.3)"/>
+      <div style="flex:1;text-align:left">
+        <div id="u-name" style="font-weight:800;font-size:16px"></div>
+        <div id="u-role" style="font-size:11px;color:var(--sage2);font-weight:600"></div>
+      </div>
+      <button class="btn-ghost" onclick="doLogout()">Keluar</button>
+    </div>
+    <div class="hrow" style="justify-content:space-between;margin-top:12px">
+      <button class="btn-nav" onclick="prevMonth()">‹</button>
+      <div style="text-align:center">
+        <div id="att-month" style="font-weight:800;font-size:20px;font-family:'Amiri',serif;color:var(--text)"></div>
+        <div id="att-year" style="color:var(--sage2);font-size:13px;font-weight:700"></div>
+      </div>
+      <button class="btn-nav" onclick="nextMonth()">›</button>
+    </div>
+    <div class="hrow" style="gap:6px;padding-bottom:4px">
+      <button class="btn-tab active" id="tab-monthly" onclick="switchTab('monthly')">📅 Bulanan</button>
+      <button class="btn-tab" id="tab-weekly" onclick="switchTab('weekly')">📆 Pekanan</button>
+      <button class="btn-tab" id="tab-recap" onclick="switchTab('recap')">📊 Rekap</button>
+    </div>
+  </div>
+  <div class="body">
+    <div id="view-monthly"></div>
+    <div id="view-weekly" style="display:none"></div>
+    <div id="view-recap" style="display:none"></div>
+  </div>
+  <div class="navbar"><div class="navbar-inner">
+    <button class="nav-btn active" id="unav-att" onclick="userNav('att')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span></button>
+    <button class="nav-btn" id="unav-notif" onclick="userNav('notif')" style="position:relative"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span><span id="unav-notif-badge" style="display:none;position:absolute;top:4px;right:4px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;line-height:16px;text-align:center"></span></button>
+    <button class="nav-btn" id="unav-profile" onclick="userNav('profile')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span></button>
+  </div></div>
+</div>
+
+<!-- ══════════════════ USER: PROFIL ══════════════════ -->
+<div id="screen-user-profile" class="screen">
+  <div class="header">
+    <div class="hinner">
+      <img src="assets/logo.png" style="width:46px;height:46px;border-radius:50%;object-fit:cover;flex-shrink:0;box-shadow:0 2px 8px rgba(90,155,134,0.3)"/>
+      <div style="flex:1"><div id="up-name" style="font-weight:800;font-size:16px"></div><div id="up-role" style="font-size:11px;color:var(--sage2);font-weight:600"></div></div>
+      <button class="btn-ghost" onclick="doLogout()">Keluar</button>
+    </div>
+  </div>
+  <div class="body">
+    <div class="card card-sage" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="avatar" style="width:54px;height:54px;font-size:22px;border-radius:16px" id="up-avatar"></div>
+        <div>
+          <div style="font-weight:800;font-size:17px" id="up-name2"></div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">@<span id="up-username" style="color:var(--sage2);font-weight:700"></span></div>
+          <div id="up-badge" style="margin-top:6px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="border-color:#e8dac4;background:linear-gradient(135deg,#faf5eb,#fff)">
+      <div style="font-weight:800;font-size:14px;color:var(--amber2);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="font-size:20px">🔒</span>Keamanan Akun</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">Username dan password hanya dapat diubah oleh <strong>Admin</strong>. Kirim request di bawah dan tunggu persetujuan.</div>
+      <div id="up-change-req-status"></div>
+      <button onclick="window.__openChangeReqModal()" style="width:100%;padding:12px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:14px;font-weight:800;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+        <span>✏️</span> Request Ganti Username / Password
+      </button>
+    </div>
+  </div>
+  <div class="navbar"><div class="navbar-inner">
+    <button class="nav-btn" id="unav-att2" onclick="userNav('att')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span></button>
+    <button class="nav-btn" id="unav-notif2" onclick="userNav('notif')" style="position:relative"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span><span id="unav-notif-badge2" style="display:none;position:absolute;top:4px;right:4px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;line-height:16px;text-align:center"></span></button>
+    <button class="nav-btn active" id="unav-profile2" onclick="userNav('profile')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span></button>
+  </div></div>
+</div>
+
+<!-- ══════════════════ USER: NOTIFIKASI ══════════════════ -->
+<div id="screen-user-notif" class="screen">
+  <div class="header">
+    <div class="hinner">
+      <div style="font-size:20px;font-weight:800">🔔 Notifikasi</div>
+    </div>
+  </div>
+  <div class="body">
+    <div id="user-notif-list" style="display:flex;flex-direction:column;gap:12px"></div>
+  </div>
+  <div class="navbar"><div class="navbar-inner">
+    <button class="nav-btn" id="unav-att3" onclick="userNav('att')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span></button>
+    <button class="nav-btn active" id="unav-notif3" onclick="userNav('notif')" style="position:relative"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span><span id="unav-notif-badge3" style="display:none;position:absolute;top:4px;right:4px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;line-height:16px;text-align:center"></span></button>
+    <button class="nav-btn" id="unav-profile3" onclick="userNav('profile')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span></button>
+  </div></div>
+</div>
+
+<!-- ══════════════════ MODALS ══════════════════ -->
+<div id="modal-user" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal('modal-user')">
+  <div class="modal">
+    <h3 id="modal-user-title">➕ Tambah Pengguna</h3>
+    <input type="hidden" id="modal-uid"/>
+    <div class="input-wrap"><label>Nama Lengkap</label><input id="mu-name" class="input" placeholder="Nama lengkap..."/></div>
+    <div class="input-wrap"><label>Username</label><input id="mu-username" class="input" placeholder="Username untuk login..."/></div>
+    <div class="input-wrap" id="mu-pw-wrap">
+      <label>Password</label>
+      <input id="mu-pw" class="input" type="password" placeholder="Password..."/>
+      <button class="eye" onclick="togglePw('mu-pw',this)">👁️</button>
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.3px">Jabatan / Role</label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px" id="mu-roles"></div>
+    </div>
+    <div class="input-wrap">
+      <label>Nomor WhatsApp <span style="font-size:10px;color:var(--muted);font-weight:500">(untuk notifikasi)</span></label>
+      <div style="display:flex;align-items:center">
+        <span style="background:var(--bg2);border:1.5px solid var(--border);border-right:none;border-radius:8px 0 0 8px;padding:0 10px;height:40px;display:flex;align-items:center;font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap">+62</span>
+        <input id="mu-phone" class="input" type="tel" placeholder="8xxxxxxxxxx" style="border-radius:0 8px 8px 0;border-left:none" oninput="this.value=this.value.replace(/[^0-9]/g,'')"/>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Contoh: 81234567890 (tanpa angka 0 di depan)</div>
+    </div>
+    <!-- Status Karyawan — hanya tampil saat tambah baru -->
+    <div id="mu-emptype-wrap" style="margin-bottom:14px">
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.3px">Status Karyawan</label>
+      <div style="display:flex;gap:8px">
+        <button id="mu-type-new" onclick="setEmpType('baru')" style="flex:1;padding:9px;border-radius:10px;border:2px solid var(--sage);background:var(--sage);color:#fff;font-weight:700;font-size:13px;cursor:pointer">🆕 Karyawan Baru</button>
+        <button id="mu-type-old" onclick="setEmpType('lama')" style="flex:1;padding:9px;border-radius:10px;border:2px solid var(--border);background:var(--card);color:var(--muted);font-weight:700;font-size:13px;cursor:pointer">📋 Karyawan Lama</button>
+      </div>
+      <!-- Info karyawan baru -->
+      <div id="mu-type-new-info" style="margin-top:10px;padding:10px 12px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;font-size:12px;color:#166534;font-weight:600">
+        📅 Perhitungan jam dimulai dari hari ini. Tanggal sebelumnya tidak dapat diisi.
+      </div>
+      <!-- Pilihan karyawan lama -->
+      <div id="mu-type-old-info" style="display:none;margin-top:10px">
+        <div style="padding:10px 12px;background:#fff7ed;border:1.5px solid #fdba74;border-radius:10px;font-size:12px;color:#9a3412;font-weight:600;margin-bottom:8px">
+          📋 Karyawan lama dapat mengisi kehadiran untuk tanggal sebelumnya melalui request akses.
+        </div>
+        <div class="input-wrap" style="margin-bottom:0">
+          <label>Tanggal Bergabung <span style="font-size:10px;color:var(--muted)">(opsional — untuk batas awal perhitungan)</span></label>
+          <input id="mu-joindate" class="input" type="date"/>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-sage" style="flex:1" onclick="saveUserModal()">✓ Simpan</button>
+      <button class="btn btn-gray" style="flex:1" onclick="closeModal('modal-user')">Batal</button>
     </div>
   </div>
 </div>
 
-<!-- Modal upload siswa -->
-<div id="modal-upload" class="modal">
-  <div class="modal-box">
-    <div class="modal-title">📤 Upload Data Siswa</div>
-    <div class="hint" style="margin-bottom:10px">
-      File Excel (.xlsx) dengan kolom: <b>Nama</b>, <b>Rombel</b>, <b>NISN</b> (baris pertama = judul kolom).
-      Data akan <b>ditambahkan</b> ke daftar; NISN yang sudah ada akan diperbarui.
+<!-- Modal Status / Cuti -->
+<div id="modal-status" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal('modal-status')">
+  <div class="modal">
+    <h3>🏖️ Status Kehadiran</h3>
+    <input type="hidden" id="ms-uid"/>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:16px;font-weight:600">Pengguna: <span id="ms-name" style="color:var(--text);font-weight:800"></span></div>
+    <div style="margin-bottom:16px">
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.3px">Status</label>
+      <div style="display:flex;gap:8px">
+        <button id="ms-status-active" onclick="window.__setMsStatus('aktif')" style="flex:1;padding:10px;border-radius:10px;border:2px solid var(--sage);background:var(--sage3);color:var(--sage2);font-weight:800;font-size:13px;cursor:pointer;transition:all .2s">✅ Aktif</button>
+        <button id="ms-status-cuti" onclick="window.__setMsStatus('cuti')" style="flex:1;padding:10px;border-radius:10px;border:2px solid var(--border);background:var(--bg2);color:var(--muted);font-weight:800;font-size:13px;cursor:pointer;transition:all .2s">🏖️ Cuti</button>
+      </div>
     </div>
-    <button class="btn-ghost" style="width:100%;margin-bottom:10px" onclick="downloadTemplateSiswa()">⬇️ Unduh Template Excel</button>
-    <input id="up-file" type="file" accept=".xlsx,.xls,.csv" class="input" style="padding:9px"/>
-    <div id="up-preview" class="hint" style="margin-top:8px"></div>
-    <div class="modal-btns">
-      <button class="btn btn-gray" onclick="closeModal('modal-upload')">Batal</button>
-      <button class="btn btn-sage" onclick="prosesUploadSiswa()">Upload</button>
+    <div id="ms-cuti-wrap" style="display:none">
+      <div class="input-wrap">
+        <label>Alasan Cuti</label>
+        <input id="ms-cuti-reason" class="input" placeholder="Tuliskan alasan cuti..."/>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <div class="input-wrap" style="flex:1;margin-bottom:0">
+          <label>Tanggal Mulai</label>
+          <input id="ms-cuti-start" class="input" type="date"/>
+        </div>
+        <div class="input-wrap" style="flex:1;margin-bottom:0">
+          <label>Tanggal Selesai</label>
+          <input id="ms-cuti-end" class="input" type="date"/>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-
-<!-- Modal detail jurnal -->
-<div id="modal-jurnal" class="modal">
-  <div class="modal-box modal-lg">
-    <div class="modal-title">📖 Detail Jurnal</div>
-    <div id="mj-body"></div>
-    <div class="modal-btns">
-      <button class="btn btn-gray" style="width:100%" onclick="closeModal('modal-jurnal')">Tutup</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal konfirmasi -->
-<div id="modal-confirm" class="modal">
-  <div class="modal-box">
-    <div class="modal-title" id="mc-title">Konfirmasi</div>
-    <div id="mc-msg" style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px"></div>
-    <div class="modal-btns">
-      <button class="btn btn-gray" onclick="closeModal('modal-confirm')">Batal</button>
-      <button id="mc-ok" class="btn btn-rose">Ya, Lanjutkan</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-sage" style="flex:1" onclick="saveStatusModal()">✓ Simpan</button>
+      <button class="btn btn-gray" style="flex:1" onclick="closeModal('modal-status')">Batal</button>
     </div>
   </div>
 </div>
 
+<div id="modal-archived-users" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal('modal-archived-users')">
+  <div class="modal" style="padding:0;overflow:hidden;max-width:400px">
+    <div style="padding:18px 18px 14px;background:linear-gradient(135deg,var(--bg2),#fff);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+      <div style="font-size:22px">📁</div>
+      <div style="flex:1">
+        <div style="font-weight:800;font-size:16px">Akun Diarsipkan</div>
+        <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px">Akun tidak aktif — klik Pulihkan untuk mengaktifkan kembali</div>
+      </div>
+      <button onclick="closeModal('modal-archived-users')" style="background:none;border:none;padding:6px;cursor:pointer;color:var(--muted);border-radius:8px;font-size:18px;line-height:1">✕</button>
+    </div>
+    <div id="archived-user-list" style="max-height:420px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<div id="modal-reset-pw" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal('modal-reset-pw')">
+  <div class="modal">
+    <h3>🔑 Reset Password</h3>
+    <input type="hidden" id="rp-uid"/>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:14px;font-weight:600">Reset password untuk: <span id="rp-name" style="color:var(--text);font-weight:800"></span></div>
+    <div class="input-wrap"><label>Password Baru</label><input id="rp-new" class="input" type="password" placeholder="Password baru..."/><button class="eye" onclick="togglePw('rp-new',this)">👁️</button></div>
+    <div class="input-wrap"><label>Konfirmasi Password Baru</label><input id="rp-conf" class="input" type="password" placeholder="Ulangi password baru..."/><button class="eye" onclick="togglePw('rp-conf',this)">👁️</button></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-amber" style="flex:1" onclick="doResetPw()">🔑 Reset</button>
+      <button class="btn btn-gray" style="flex:1" onclick="closeModal('modal-reset-pw')">Batal</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- XLSX (±900KB) dimuat lazy dari app.js hanya saat fitur Excel dipakai (admin) -->
 <script type="module" src="app.js"></script>
+
+<!-- PWA: Daftarkan service worker (minimal install-capable + fallback offline shell) -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log('[PWA] Service worker terdaftar:', reg.scope))
+        .catch(err => console.warn('[PWA] Gagal daftar service worker:', err));
+    });
+  }
+</script>
 </body>
 </html>
