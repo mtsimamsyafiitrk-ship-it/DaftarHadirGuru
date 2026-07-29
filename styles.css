@@ -1,33 +1,14 @@
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#f0f4f8;
-  --bg2:#e8edf2;
-  --card:#ffffff;
-  --card2:#f7f9fc;
-  --border:#dde3ea;
-  --border2:#c8d0da;
-  --text:#2d3748;
-  --text2:#4a5568;
-  --muted:#8a97a8;
-  --sage:#7fb3a0;
-  --sage2:#5a9b86;
-  --sage3:#e8f4f0;
-  --sage4:#d0ebe4;
-  --teal:#6ba8b8;
-  --teal2:#4d8fa0;
-  --teal3:#e5f2f6;
-  --rose:#c4868e;
-  --rose2:#a86870;
-  --rose3:#f5e8ea;
-  --amber:#c4a46b;
-  --amber2:#a8874d;
-  --amber3:#f5eedf;
-  --lavender:#9b8fc4;
-  --lavender2:#7b6ea8;
-  --lavender3:#eeeaf7;
-  --sky:#7da8c4;
-  --sky2:#5a8aaa;
-  --sky3:#e5eef5;
+  --bg:#f0f4f8; --bg2:#e8edf2; --card:#ffffff; --card2:#f7f9fc;
+  --border:#dde3ea; --border2:#c8d0da;
+  --text:#2d3748; --text2:#4a5568; --muted:#8a97a8;
+  --sage:#7fb3a0; --sage2:#5a9b86; --sage3:#e8f4f0; --sage4:#d0ebe4;
+  --teal:#6ba8b8; --teal2:#4d8fa0; --teal3:#e5f2f6;
+  --rose:#c4868e; --rose2:#a86870; --rose3:#f5e8ea;
+  --amber:#c4a46b; --amber2:#a8874d; --amber3:#f5eedf;
+  --lavender:#9b8fc4; --lavender2:#7b6ea8; --lavender3:#eeeaf7;
+  --sky:#7da8c4; --sky2:#5a8aaa; --sky3:#e5eef5;
   --shadow:0 2px 12px rgba(45,55,72,0.08);
   --shadow2:0 4px 24px rgba(45,55,72,0.12);
 }
@@ -35,18 +16,30 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   background-image:radial-gradient(ellipse 60% 40% at 20% 10%,rgba(127,179,160,0.12),transparent),
   radial-gradient(ellipse 50% 40% at 80% 90%,rgba(107,168,184,0.1),transparent);}
 button{cursor:pointer;font-family:inherit}
-input{font-family:inherit}
+input,select,textarea{font-family:inherit}
+textarea.input{resize:vertical;min-height:44px}
 
 /* ── LAYOUT ── */
 .screen{display:none}.screen.active{display:block}
+.page{display:none}.page.active{display:block}
 .header{padding:14px 16px 10px;position:sticky;top:0;z-index:100;
   background:rgba(240,244,248,0.92);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
   border-bottom:1px solid var(--border);box-shadow:0 1px 8px rgba(45,55,72,0.06)}
 .hinner{display:flex;align-items:center;gap:12px;max-width:680px;margin:0 auto}
-.hrow{max-width:680px;margin:8px auto 0;display:flex;align-items:center;gap:10px}
-/* iOS Safari fix: tambah safe-area-inset-bottom agar konten tidak tertutup home bar iPhone.
-   Navbar kini floating island, padding lebih kecil (80px) sudah cukup. */
 .body{max-width:680px;margin:0 auto;padding:16px 14px;padding-bottom:max(96px,calc(76px + env(safe-area-inset-bottom)))}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+@media(max-width:420px){.grid2{grid-template-columns:1fr}}
+
+/* ── LOGIN ── */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{background:var(--card);border-radius:24px;padding:30px 26px;width:100%;max-width:400px;
+  border:1px solid var(--border);box-shadow:var(--shadow2);text-align:center}
+.login-logo{width:76px;height:76px;border-radius:20px;object-fit:contain;margin-bottom:12px}
+.login-title{font-family:'Amiri',serif;font-size:24px;font-weight:700;color:var(--text)}
+.login-sub{font-size:12.5px;color:var(--sage2);font-weight:700;margin-top:3px}
+.login-card .input-wrap{text-align:left}
+.err-msg{display:none;background:var(--rose3);color:var(--rose2);border:1px solid #e8cdd0;
+  border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:700;margin-bottom:12px;text-align:left}
 
 /* ── CARDS ── */
 .card{background:var(--card);border-radius:18px;padding:16px;border:1px solid var(--border);margin-bottom:12px;box-shadow:var(--shadow)}
@@ -55,7 +48,15 @@ input{font-family:inherit}
 .card-rose{border-color:#e8cdd0;background:linear-gradient(135deg,#faf3f4,#ffffff)}
 .card-amber{border-color:#e8dac4;background:linear-gradient(135deg,#faf5eb,#ffffff)}
 .card-lavender{border-color:#d8d2ec;background:linear-gradient(135deg,#f5f3fc,#ffffff)}
-.card-sky{border-color:#c2d8e8;background:linear-gradient(135deg,#eef4f9,#ffffff)}
+.section-title{font-weight:800;font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.hint{font-size:12px;color:var(--muted);font-weight:600;line-height:1.55}
+.opt{font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted)}
+
+/* ── STAT TILES ── */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat{border-radius:16px;padding:14px;border:1px solid var(--border);background:var(--card);box-shadow:var(--shadow)}
+.stat .num{font-size:26px;font-weight:900;line-height:1.1}
+.stat .lbl{font-size:11.5px;font-weight:700;color:var(--muted);margin-top:3px}
 
 /* ── BUTTONS ── */
 .btn{border:none;border-radius:12px;padding:10px 18px;font-weight:700;font-size:13px;transition:all .2s}
@@ -65,462 +66,97 @@ input{font-family:inherit}
 .btn-teal{background:linear-gradient(135deg,#6ba8b8,#4d8fa0);color:#fff}
 .btn-rose{background:linear-gradient(135deg,#c4868e,#a86870);color:#fff}
 .btn-amber{background:linear-gradient(135deg,#c4a46b,#a8874d);color:#fff}
-.btn-lavender{background:linear-gradient(135deg,#9b8fc4,#7b6ea8);color:#fff}
 .btn-gray{background:#f0f2f5;border:1px solid var(--border)!important;color:var(--muted);font-weight:600}
 .btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2);border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;transition:all .2s}
 .btn-ghost:hover{background:var(--bg2)}
 .btn-icon{background:none;border:none;font-size:17px;padding:5px 8px;transition:transform .2s;border-radius:8px}
 .btn-icon:hover{transform:scale(1.15);background:var(--bg2)}
-.btn-nav{background:var(--card);border:1px solid var(--border);color:var(--text2);border-radius:12px;width:44px;height:44px;font-size:20px;font-weight:900;transition:all .2s;box-shadow:var(--shadow)}
-.btn-nav:hover{background:var(--sage3);border-color:var(--sage4)}
+.tabbar{display:flex;gap:8px}
 .btn-tab{flex:1;padding:9px 6px;border-radius:12px;border:none;font-weight:700;font-size:12px;transition:all .25s}
 .btn-tab.active{background:linear-gradient(135deg,#7fb3a0,#5a9b86);color:#fff;box-shadow:0 2px 10px rgba(90,155,134,0.3)}
 .btn-tab:not(.active){background:var(--bg2);color:var(--muted);border:1px solid var(--border)}
-.btn-week{padding:8px 14px;border-radius:10px;border:1px solid var(--border);font-weight:700;font-size:12px;transition:all .2s;flex-shrink:0;background:var(--card);color:var(--muted)}
-.btn-week.active{background:linear-gradient(135deg,#7fb3a0,#5a9b86);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(90,155,134,0.3)}
 
 /* ── INPUTS ── */
-/* iOS Safari fix: font-size minimal 16px agar iOS tidak auto-zoom viewport saat input difokus */
 .input{width:100%;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-size:16px;outline:none;transition:border .2s;font-weight:500}
 .input:focus{border-color:var(--sage);box-shadow:0 0 0 3px rgba(127,179,160,0.15)}
 .input::placeholder{color:var(--muted)}
 .input[type="date"]{color-scheme:light}
+select.input{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a97a8' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
 .input-wrap{position:relative;margin-bottom:12px}
 .input-wrap label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;letter-spacing:0.3px;text-transform:uppercase}
-/* ── HARI LIBUR STYLE ── */
-.cal-day.holiday-day{background:linear-gradient(135deg,#fff1f2,#ffe4e6)!important;border:1.5px solid #fca5a5!important;cursor:pointer!important;opacity:0.85}
-.cal-day.holiday-day .cal-day-num{color:#dc2626!important}
-.cal-holiday-mark{position:absolute;top:2px;right:3px;font-size:9px;line-height:1}
-.before-join{background:linear-gradient(135deg,#f8fafc,#f1f5f9)!important;border:1.5px solid #cbd5e1!important;cursor:not-allowed!important;opacity:0.7}
-.cal-day.before-join .cal-day-num{color:#94a3b8!important}
-/* ── POP-UP NOTIF HARI LIBUR ── */
-#modal-holiday-notif{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99999;display:none;align-items:center;justify-content:center;padding:20px}
-#modal-holiday-notif.show{display:flex}
-.holiday-notif-box{background:#fff;border-radius:24px;padding:0;width:100%;max-width:360px;box-shadow:0 12px 48px rgba(220,38,38,0.2);overflow:hidden;animation:popIn .3s cubic-bezier(.34,1.56,.64,1) forwards}
-@keyframes popIn{from{opacity:0;transform:scale(0.85)}to{opacity:1;transform:scale(1)}}
-.holiday-notif-header{background:linear-gradient(135deg,#fee2e2,#fecaca);padding:28px 24px 20px;text-align:center;border-bottom:1px solid #fca5a5}
-.holiday-notif-icon{font-size:56px;line-height:1;margin-bottom:10px;display:block}
-.holiday-notif-title{font-weight:900;font-size:19px;color:#dc2626;font-family:'Amiri',serif;line-height:1.2}
-.holiday-notif-body{padding:20px 24px 24px;text-align:center}
-.holiday-notif-msg{font-size:14px;color:#374151;font-weight:600;line-height:1.6;margin-bottom:6px}
-.holiday-notif-sub{font-size:12px;color:#9ca3af;font-weight:500;margin-bottom:20px;line-height:1.5}
-.holiday-notif-btn{width:100%;padding:13px;border-radius:14px;border:none;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;font-weight:800;font-size:14px;cursor:pointer;transition:all .2s;box-shadow:0 4px 12px rgba(220,38,38,0.3)}
-.holiday-notif-btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(220,38,38,0.4)}
-.holiday-notif-btn:active{transform:translateY(0)}
 .input-wrap .eye{position:absolute;right:12px;bottom:11px;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer}
 
-/* ── LOGO ── */
+/* ── LOGO/HEADER ── */
 .logo-gem{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#7fb3a0,#5a9b86);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 12px rgba(90,155,134,0.3);flex-shrink:0}
 .app-title{font-family:'Amiri',serif;font-size:18px;font-weight:700;color:var(--text);line-height:1.2}
-.app-sub{font-size:11px;color:var(--sage2);letter-spacing:0.3px;margin-top:1px;font-weight:600}
+.app-sub{font-size:11px;color:var(--sage2);letter-spacing:0.3px;margin-top:1px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ── ROLE COLORS ── */
-.role-color-0{color:#5a9b86} /* Pengajar */
-.role-color-1{color:#4d8fa0} /* Staf */
-.role-color-2{color:#7b6ea8} /* Admin Halaqah */
-.role-color-3{color:#a86870} /* Kepala Madrasah */
-.role-color-4{color:#a8874d} /* Bendahara */
+/* ── NAVBAR ── */
+.navbar{position:fixed;left:50%;transform:translateX(-50%);bottom:max(10px,env(safe-area-inset-bottom));
+  width:min(660px,calc(100% - 20px));display:flex;gap:2px;padding:7px;z-index:200;
+  background:rgba(255,255,255,0.94);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+  border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow2)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px;
+  border:none;background:none;border-radius:14px;font-size:10.5px;font-weight:800;color:var(--muted);transition:all .2s}
+.nav-btn span{font-size:19px;line-height:1}
+.nav-btn.active{background:var(--sage3);color:var(--sage2)}
 
-/* ── BADGE ── */
-.badge{border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;display:inline-block}
-.badge-sage{background:var(--sage3);color:var(--sage2);border:1px solid var(--sage4)}
-.badge-teal{background:var(--teal3);color:var(--teal2);border:1px solid #c2dde5}
-.badge-lavender{background:var(--lavender3);color:var(--lavender2);border:1px solid #d8d2ec}
-.badge-rose{background:var(--rose3);color:var(--rose2);border:1px solid #e8cdd0}
-.badge-amber{background:var(--amber3);color:var(--amber2);border:1px solid #e8dac4}
+/* ── KBC / CHIPS ── */
+.kbc-wrap{display:flex;flex-wrap:wrap;gap:7px}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:999px;
+  border:1.5px solid var(--border);background:#fff;font-size:12.5px;font-weight:700;color:var(--text2);
+  cursor:pointer;transition:all .2s;user-select:none}
+.chip.on{background:var(--sage3);border-color:var(--sage);color:var(--sage2)}
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:800}
+.badge-mini{font-size:11px;font-weight:800;color:var(--sage2);background:var(--sage3);border-radius:999px;padding:2px 9px}
 
-/* ── LOGIN ── */
-.login-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
-.login-box{width:100%;max-width:380px}
-.login-logo{text-align:center;margin-bottom:32px}
-.login-logo .gem{width:76px;height:76px;border-radius:24px;background:linear-gradient(135deg,#7fb3a0,#5a9b86);display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto 16px;box-shadow:0 8px 24px rgba(90,155,134,0.3)}
-.login-logo h1{font-family:'Amiri',serif;font-size:16px;font-weight:700;color:var(--text);text-transform:uppercase;line-height:1.3}
-.login-logo p{font-size:11px;color:var(--sage2);margin-top:5px;font-weight:700;font-style:italic}
-.login-card{background:var(--card);border-radius:24px;padding:28px;box-shadow:var(--shadow2);border:1px solid var(--border)}
-.login-role-tabs{display:flex;gap:8px;margin-bottom:20px}
-.login-role-tab{flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg2);color:var(--muted);font-weight:700;font-size:13px;transition:all .2s}
-.login-role-tab.active{border-color:var(--sage);background:var(--sage3);color:var(--sage2)}
-.login-err{background:var(--rose3);border:1px solid #e8cdd0;border-radius:12px;padding:10px 14px;color:var(--rose2);font-size:13px;font-weight:600;margin-bottom:12px;display:none}
+/* ── ABSEN LIST ── */
+.absen-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--bg2)}
+.absen-row:last-child{border-bottom:none}
+.absen-nama{flex:1;min-width:0;font-size:13.5px;font-weight:700}
+.absen-nisn{font-size:11px;color:var(--muted);font-weight:600}
+.absen-btns{display:flex;gap:4px;flex-shrink:0}
+.st-btn{width:34px;height:34px;border-radius:10px;border:1.5px solid var(--border);background:#fff;
+  font-weight:900;font-size:12.5px;color:var(--muted);transition:all .15s}
 
-/* ── USER CARD ── */
-.ucard{border-radius:16px;padding:16px;border:1px solid var(--border);margin-bottom:10px;background:var(--card);transition:all .2s;box-shadow:var(--shadow)}
-.ucard:hover{border-color:var(--sage4);transform:translateY(-1px);box-shadow:var(--shadow2)}
-.avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#7fb3a0,#5a9b86);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;flex-shrink:0;color:#fff}
+/* ── LIST ITEMS ── */
+.item{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--bg2)}
+.item:last-child{border-bottom:none}
+.item .grow{flex:1;min-width:0}
+.item .t1{font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .t2{font-size:12px;color:var(--muted);font-weight:600;margin-top:1px;line-height:1.45}
+.avatar{width:38px;height:38px;border-radius:12px;background:var(--sage3);color:var(--sage2);
+  display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;flex-shrink:0}
 
-/* ── CALENDAR ── */
-.cal-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}
-.cal-hdr{text-align:center;font-weight:700;font-size:10px;color:var(--muted);padding:6px 0;letter-spacing:0.5px}
-.cal-day{border-radius:10px;padding:5px 2px;text-align:center;cursor:pointer;transition:all .15s;border:1.5px solid transparent;min-height:54px}
-.cal-day:hover{background:var(--sage3)}
-.cal-day.has-d{background:linear-gradient(135deg,#e8f4f0,#f0f9f6);border-color:var(--sage4)}
-.cal-day.editing{background:var(--teal3);border:2px solid var(--teal)!important}
-.cal-day.is-today{border:2px solid var(--sage)!important}
-.cal-day-num{font-weight:800;font-size:12px;color:var(--text)}
-.cal-day.is-today .cal-day-num{color:var(--sage2)}
-.cal-score{font-size:9px;color:var(--sage2);font-weight:800;margin-top:1px}
-.cal-dots{display:flex;flex-wrap:wrap;gap:1px;justify-content:center;margin-top:2px}
-.dot{width:5px;height:5px;border-radius:50%;display:inline-block}
-
-/* ── SESSION GRID ── */
-.sess-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.sess-btn{border-radius:14px;padding:11px 5px;font-weight:700;font-size:12px;transition:all .2s;text-align:center;cursor:pointer;border:2px solid transparent}
-.sess-btn:hover{transform:scale(1.03)}
-.s-icon{font-size:20px;margin-bottom:2px}
-.s-desc{font-size:9px;font-weight:500;color:var(--muted);margin-top:3px;line-height:1.3}
-
-/* ── MISC ── */
-.chip{border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;display:inline-block;margin:2px}
-.score-badge{text-align:center;border-radius:16px;padding:18px;margin-top:12px}
-.recap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
-.recap-item{background:var(--card2);border-radius:12px;padding:10px;text-align:center;border:1px solid var(--border)}
-.bar-wrap{display:flex;align-items:flex-end;gap:4px;height:110px}
-.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px}
-.bar-val{font-size:8px;color:var(--sage2);font-weight:800;min-height:12px}
-.bar-bar{width:100%;border-radius:5px 5px 0 0;transition:height .4s;background:linear-gradient(to top,#7fb3a0,#5a9b86);min-height:0}
-.bar-lbl{font-size:7px;color:var(--muted);text-align:center;font-weight:600}
-.day-card{border-radius:16px;border:1px solid var(--border);overflow:hidden;margin-bottom:10px;box-shadow:var(--shadow)}
-.day-card-hdr{display:flex;align-items:center;gap:14px;padding:14px;cursor:pointer;background:var(--card);transition:background .15s}
-.day-card-hdr:hover{background:var(--bg2)}
-.day-num-box{width:46px;height:46px;border-radius:14px;background:var(--bg2);border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
-.day-num-box.today{background:linear-gradient(135deg,#7fb3a0,#5a9b86);border:none;box-shadow:0 2px 8px rgba(90,155,134,0.3)}
-.day-num-box.today div{color:#fff!important}
-.day-body{border-top:1px solid var(--border);padding:14px;background:var(--bg2);display:none}
-.day-body.open{display:block}
-.edit-panel{border-radius:18px;padding:16px;border:2px solid #c2dde5;background:linear-gradient(135deg,#eef6f9,#fff);margin-top:12px;box-shadow:var(--shadow)}
-.legend{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
-.sec-title{font-weight:800;font-size:15px;color:var(--text);display:flex;align-items:center;gap:8px;margin-bottom:14px}
-.sec-title::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent)}
-.empty{text-align:center;padding:50px 20px;color:var(--muted)}
-.divider{height:1px;background:var(--border);margin:16px 0}
-
-/* ── RECAP TABLE ── */
-.recap-table-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--border);box-shadow:var(--shadow)}
-.recap-table{width:100%;border-collapse:collapse;font-size:13px;min-width:500px}
-.recap-table th{background:linear-gradient(135deg,#7fb3a0,#5a9b86);color:#fff;padding:11px 10px;text-align:center;font-weight:700;font-size:12px;white-space:nowrap}
-.recap-table th:first-child{border-radius:13px 0 0 0}
-.recap-table th:last-child{border-radius:0 13px 0 0}
-.recap-table td{padding:10px;text-align:center;border-bottom:1px solid var(--border);font-weight:600;font-size:13px;color:var(--text2);background:#fff}
-.recap-table td:nth-child(2){text-align:left;font-weight:700;color:var(--text)}
-.recap-table tr:last-child td{border-bottom:none}
-.recap-table tr:nth-child(even) td{background:var(--card2)}
-.recap-table tr:hover td{background:var(--sage3)}
-.recap-table .total-row td{background:linear-gradient(135deg,#e8f4f0,#f0f9f6)!important;font-weight:800;color:var(--sage2);border-top:2px solid var(--sage4)}
-
-/* ── LOADING / TOAST ── */
-/* iOS Safari fix: tambah -webkit-backdrop-filter untuk dukungan iOS < 15 */
-.loading-overlay{position:fixed;inset:0;background:rgba(240,244,248,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
-.spinner{width:48px;height:48px;border:4px solid var(--sage4);border-top-color:var(--sage2);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--sage2);color:#fff;padding:10px 20px;border-radius:12px;font-weight:700;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;box-shadow:var(--shadow2);white-space:nowrap}
-.toast.show{opacity:1}
-@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.fade-in{animation:fadeIn .3s ease forwards}
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:14px}
+table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:440px}
+.tbl th{background:var(--card2);text-align:left;padding:9px 10px;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:8px 10px;border-bottom:1px solid var(--bg2);font-weight:600}
+.tbl tr:last-child td{border-bottom:none}
+.tbl td.num,.tbl th.num{text-align:center}
 
 /* ── MODAL ── */
-/* iOS Safari fix: tambah -webkit-backdrop-filter untuk dukungan iOS < 15 */
-.modal-bg{position:fixed;inset:0;background:rgba(45,55,72,0.4);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
-.modal{background:#fff;border-radius:22px;padding:24px;width:100%;max-width:420px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(45,55,72,0.2)}
-.modal h3{font-family:'Amiri',serif;font-size:19px;font-weight:700;margin-bottom:16px;color:var(--sage2)}
+.modal{display:none;position:fixed;inset:0;background:rgba(45,55,72,0.5);z-index:1000;
+  align-items:center;justify-content:center;padding:18px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.modal-box{background:#fff;border-radius:22px;padding:22px;width:100%;max-width:420px;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow2);animation:popIn .25s cubic-bezier(.34,1.56,.64,1)}
+.modal-lg{max-width:520px}
+.modal-title{font-weight:900;font-size:17px;margin-bottom:14px}
+.modal-btns{display:flex;gap:10px;margin-top:16px}
+.modal-btns .btn{flex:1;padding:12px}
+@keyframes popIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
 
-/* ── NAVBAR — Glass Floating Island ──
-   iOS Safari fixes:
-   · -webkit-backdrop-filter untuk iOS < 15
-   · env(safe-area-inset-bottom) untuk home indicator iPhone X+
-   · viewport-fit=cover sudah ada di index.html
-   Design: navbar transparan, konten ada di .navbar-inner yang berbentuk pill kaca mengambang */
-.navbar{
-  position:fixed;bottom:0;left:0;right:0;
-  padding:8px 16px;padding-bottom:max(14px,env(safe-area-inset-bottom));
-  z-index:100;
-  background:transparent;
-  pointer-events:none; /* klik bisa tembus ke konten di celah */
-}
-.navbar-inner{
-  display:flex;justify-content:space-around;align-items:center;
-  max-width:440px;margin:0 auto;
-  background:rgba(255,255,255,0.80);
-  -webkit-backdrop-filter:blur(24px) saturate(180%);
-  backdrop-filter:blur(24px) saturate(180%);
-  border-radius:28px;
-  padding:5px;
-  border:1px solid rgba(255,255,255,0.65);
-  box-shadow:
-    0 8px 32px rgba(45,55,72,0.13),
-    0 2px 6px rgba(45,55,72,0.06),
-    inset 0 1px 0 rgba(255,255,255,0.85);
-  pointer-events:auto;
-}
+/* ── LOADING / TOAST ── */
+.loading-overlay{position:fixed;inset:0;background:rgba(240,244,248,0.94);z-index:2000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.spinner{width:42px;height:42px;border-radius:50%;border:4px solid var(--sage4);border-top-color:var(--sage2);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-80px);z-index:3000;
+  background:var(--sage2);color:#fff;font-weight:700;font-size:13px;padding:11px 20px;border-radius:14px;
+  box-shadow:var(--shadow2);transition:transform .3s;max-width:calc(100% - 30px);text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
 
-/* Nav button — micro-animated spring */
-.nav-btn{
-  display:flex;flex-direction:column;align-items:center;
-  gap:0;
-  background:none;border:none;
-  color:var(--muted);
-  padding:9px 14px;
-  border-radius:22px;
-  transition:all .25s cubic-bezier(.34,1.56,.64,1);
-  position:relative;
-  min-width:0;
-  -webkit-tap-highlight-color:transparent;
-  outline:none;
-}
-.nav-btn:active{
-  transform:scale(.87);
-  transition:transform .08s ease;
-}
-.nav-btn.active{
-  background:linear-gradient(145deg,rgba(127,179,160,.22),rgba(90,155,134,.13));
-  color:var(--sage2);
-}
-
-/* Icon container — lifts on active */
-.nav-icon{
-  width:24px;height:24px;
-  display:flex;align-items:center;justify-content:center;
-  transition:transform .3s cubic-bezier(.34,1.56,.64,1);
-}
-.nav-btn.active .nav-icon{
-  transform:scale(1.18);
-}
-.nav-icon svg{
-  transition:stroke .2s, stroke-width .2s;
-}
-.nav-btn.active .nav-icon svg{
-  stroke:var(--sage2);
-  stroke-width:2.5;
-}
-
-/* Label — subtly fades in weight on active */
-.nav-label{display:none}
-.nav-btn.active .nav-label{display:none}
-
-/* Login-role tabs also use nav-icon SVGs */
-.login-role-tab .nav-icon{
-  width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-right:3px;
-}
-
-/* ── MONTH SELECTOR ── */
-.month-nav{display:flex;align-items:center;justify-content:space-between;background:var(--card);border-radius:16px;padding:12px 16px;border:1px solid var(--border);margin-bottom:12px;box-shadow:var(--shadow)}
-
-/* ============================================================
-   MICRO ANIMATIONS — Global Enhancement
-   ============================================================ */
-
-/* Screen transition: HANYA opacity (bukan transform) agar position:fixed
-   di dalam .screen.active tidak berubah jadi position:absolute di browser desktop */
-.screen.active{
-  animation:screenIn .22s cubic-bezier(.4,0,.2,1) both;
-}
-@keyframes screenIn{
-  from{opacity:0}
-  to{opacity:1}
-}
-
-/* Button spring press (all .btn) */
-.btn:active{
-  transform:scale(.95)!important;
-  transition:transform .08s ease!important;
-}
-.btn-nav:active,.btn-icon:active,.btn-ghost:active{
-  transform:scale(.90);
-  transition:transform .08s ease;
-}
-
-/* Card hover: subtle spring lift */
-.card{transition:box-shadow .2s,transform .2s cubic-bezier(.34,1.56,.64,1)}
-.ucard{transition:box-shadow .2s,transform .2s cubic-bezier(.34,1.56,.64,1),border-color .2s}
-
-/* Calendar day pop tap */
-.cal-day:active{
-  transform:scale(.9);
-  transition:transform .08s ease;
-}
-.sess-btn:active{
-  transform:scale(.92);
-  transition:transform .08s ease;
-}
-
-/* Modal entrance: scale+fade */
-.modal-bg .modal{
-  animation:modalIn .25s cubic-bezier(.34,1.56,.64,1) both;
-}
-@keyframes modalIn{
-  from{opacity:0;transform:scale(.88) translateY(16px)}
-  to{opacity:1;transform:scale(1) translateY(0)}
-}
-.holiday-notif-box{
-  animation:popIn .3s cubic-bezier(.34,1.56,.64,1) both!important;
-}
-
-/* Toast: slide up from bottom */
-.toast{
-  transition:opacity .3s cubic-bezier(.4,0,.2,1),transform .3s cubic-bezier(.34,1.56,.64,1);
-  transform:translateX(-50%) translateY(12px);
-  opacity:0;
-}
-.toast.show{
-  opacity:1;
-  transform:translateX(-50%) translateY(0);
-}
-
-/* Loading overlay: modern pulse spinner */
-.spinner{
-  width:40px;height:40px;
-  border:3px solid transparent;
-  border-top-color:var(--sage2);
-  border-right-color:var(--sage4);
-  border-radius:50%;
-  animation:spin .7s cubic-bezier(.4,0,.6,1) infinite;
-}
-
-/* Header: add padding-top safe area for notch */
-.header{
-  padding-top:max(14px,calc(10px + env(safe-area-inset-top)));
-}
-
-/* Glass header variant */
-.header{
-  background:rgba(240,244,248,0.85);
-  -webkit-backdrop-filter:blur(24px) saturate(200%);
-  backdrop-filter:blur(24px) saturate(200%);
-  border-bottom:1px solid rgba(255,255,255,0.5);
-  box-shadow:0 1px 0 rgba(45,55,72,0.06),0 2px 16px rgba(45,55,72,0.05);
-}
-
-/* Glass card variant */
-.card-glass{
-  background:rgba(255,255,255,0.70);
-  -webkit-backdrop-filter:blur(16px) saturate(180%);
-  backdrop-filter:blur(16px) saturate(180%);
-  border:1px solid rgba(255,255,255,0.6);
-  box-shadow:
-    0 4px 24px rgba(45,55,72,0.08),
-    inset 0 1px 0 rgba(255,255,255,0.8);
-}
-
-/* Btn-tab active: glass pill */
-.btn-tab.active{
-  background:rgba(90,155,134,0.15);
-  -webkit-backdrop-filter:blur(8px);
-  backdrop-filter:blur(8px);
-  border:1.5px solid rgba(90,155,134,0.3)!important;
-  color:var(--sage2)!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.6),0 2px 8px rgba(90,155,134,0.15);
-}
-
-/* Session buttons */
-.sess-btn{
-  backdrop-filter:none;
-  -webkit-backdrop-filter:none;
-  transition:all .2s cubic-bezier(.34,1.56,.64,1),transform .08s ease;
-}
-
-/* Smooth scroll for body */
-.body{
-  -webkit-overflow-scrolling:touch;
-  overscroll-behavior-y:contain;
-}
-
-/* Day card header: smooth open */
-.day-body{
-  transition:all .2s cubic-bezier(.4,0,.2,1);
-}
-
-/* Login card: glass morphism */
-.login-card{
-  background:rgba(255,255,255,0.88);
-  -webkit-backdrop-filter:blur(20px) saturate(180%);
-  backdrop-filter:blur(20px) saturate(180%);
-  border:1px solid rgba(255,255,255,0.7);
-  box-shadow:0 8px 40px rgba(45,55,72,0.12),inset 0 1px 0 rgba(255,255,255,.9);
-}
-
-/* Login-wrap: subtle animated gradient background */
-.login-wrap{
-  background:
-    radial-gradient(ellipse 70% 50% at 20% 20%,rgba(127,179,160,.18),transparent),
-    radial-gradient(ellipse 60% 50% at 80% 80%,rgba(107,168,184,.15),transparent),
-    var(--bg);
-}
-
-/* Input focus: glass-feel ring */
-.input:focus{
-  border-color:var(--sage);
-  box-shadow:0 0 0 3px rgba(90,155,134,.12),0 1px 4px rgba(90,155,134,.1);
-  background:rgba(255,255,255,0.98);
-}
-
-/* Recap table rows: hover transition */
-.recap-table tr{transition:background .15s}
-.recap-table tr:hover td{
-  background:rgba(127,179,160,.08)!important;
-}
-
-/* Score badge: glass treatment */
-.score-badge{
-  background:rgba(232,244,240,0.7);
-  -webkit-backdrop-filter:blur(8px);
-  backdrop-filter:blur(8px);
-  border:1px solid rgba(127,179,160,.2);
-}
-
-/* Month nav: glass */
-.month-nav{
-  background:rgba(255,255,255,0.75);
-  -webkit-backdrop-filter:blur(16px);
-  backdrop-filter:blur(16px);
-  border:1px solid rgba(255,255,255,0.6);
-  box-shadow:0 2px 12px rgba(45,55,72,.06),inset 0 1px 0 rgba(255,255,255,.8);
-}
-
-/* Modal: glass */
-.modal{
-  background:rgba(255,255,255,0.92);
-  -webkit-backdrop-filter:blur(24px) saturate(180%);
-  backdrop-filter:blur(24px) saturate(180%);
-  border:1px solid rgba(255,255,255,0.7);
-  box-shadow:0 20px 60px rgba(45,55,72,.16),inset 0 1px 0 rgba(255,255,255,.9);
-}
-
-
-/* ===== next <style> block ===== */
-
-@page{size:A4 portrait;margin:15mm}body{font-family:Arial,sans-serif;padding:20px;color:#2d3748}h1{color:#5a9b86;font-size:20px;margin-bottom:4px}
-  p{color:#8a97a8;font-size:13px;margin-bottom:16px}
-  table{width:100%;border-collapse:collapse;font-size:11px}
-  th{background:#5a9b86;color:#fff;padding:8px 6px;text-align:center}
-  th:nth-child(2){text-align:left}th:nth-child(3){text-align:left}
-  th.poin{background:#a8874d}
-  td{padding:7px 6px;border-bottom:1px solid #e2e8f0;text-align:center}
-  td:nth-child(2),td:nth-child(3){text-align:left}
-  tr:nth-child(even){background:#f7f9fc}
-  .tot{background:#e8f4f0!important;font-weight:bold}
-
-
-/* ===== next <style> block ===== */
-
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Times New Roman',serif;padding:20px;color:#1a1a1a;font-size:11pt}
-    .kop{text-align:center;border-bottom:3px double #1a5c2a;padding-bottom:10px;margin-bottom:14px}
-    .kop .inst{font-size:15pt;font-weight:bold;margin:2px 0}
-    .kop .sub{font-size:10pt}
-    h2{text-align:center;font-size:13pt;margin:12px 0 4px;text-transform:uppercase}
-    h3{text-align:center;font-size:11pt;margin-bottom:14px;font-weight:normal}
-    table{width:100%;border-collapse:collapse;font-size:10pt}
-    th{background:#1a5c2a;color:#fff;padding:7px 8px;text-align:center;border:1px solid #1a5c2a}
-    th:nth-child(2),th:nth-child(3){text-align:left}
-    td{padding:6px 8px;border:1px solid #ccc;vertical-align:top}
-    td:nth-child(2),td:nth-child(3){text-align:left}
-    tr:nth-child(even) td{background:#e8f4ee}
-    .grand{background:#f0f9f6;font-weight:bold;text-align:center;border:1px solid #ccc;padding:6px}
-    .ttd{display:flex;justify-content:space-between;margin-top:40px;font-size:10pt}
-    .ttd-box{text-align:center;width:220px}
-    .ttd-name{font-weight:bold;text-decoration:underline;margin-top:50px}
-    .note{font-size:9pt;color:#888;text-align:center;margin-top:16px}
-    @media print{body{padding:10px}}
-
-
-/* ===== next <style> block ===== */
-
-body{font-family:Arial,sans-serif;padding:20px;color:#2d3748}h1{color:#5a9b86;font-size:20px}h2{color:#4d8fa0;font-size:15px;margin:16px 0 8px}table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px}th{background:#5a9b86;color:#fff;padding:8px;text-align:left}td{padding:6px 8px;border-bottom:1px solid #e2e8f0}tr:nth-child(even){background:#f7f9fc}.tot{background:#e8f4f0;font-weight:bold}.sc{font-size:32px;font-weight:900;color:#5a9b86;text-align:center;margin:16px 0}.sub{color:#8a97a8;font-size:12px;text-align:center}
+/* ── MISC ── */
+.empty{padding:26px 10px;text-align:center;color:var(--muted);font-weight:700;font-size:13px}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.filter-row .input{width:auto;flex:1;min-width:120px;font-size:14px;padding:9px 12px}
