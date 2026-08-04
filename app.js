@@ -739,6 +739,7 @@ let _savedScheduleCache = null; // cache jadwal tersimpan untuk render & edit di
 let scheduleEditMode = false;   // apakah tabel jadwal sedang dalam mode edit
 let scheduleEditData = null;    // salinan jadwal yang sedang diedit di tempat
 let _scheduleRowUids = [];      // urutan uid per baris tabel (untuk toggle sel)
+let _savedScheduleEffective = ''; // tanggal mulai berlaku jadwal aktif ('' bila belum tercatat)
 
 // ── Helpers jadwal pengguna ──
 // Ambil jadwal sesi untuk uid pada dayJsIdx (0=Ahad,...,6=Sab)
@@ -1237,23 +1238,78 @@ async function loadSavedScheduleDisplay(){
   if(!savedEl||!tableEl) return;
   try{
     _savedScheduleCache = await getHolidaySchedule();
+    // Tanggal mulai berlaku di-cache agar tombol unduh tetap sinkron (syarat popup iOS).
+    _savedScheduleEffective = await getScheduleEffectiveDate();
     scheduleEditMode = false;
     scheduleEditData = null;
     setScheduleEditButtons(false);
+    renderScheduleEffectiveInfo();
     renderSavedSchedule();
   }catch(e){ savedEl.style.display='none'; }
 }
 window.loadSavedScheduleDisplay = loadSavedScheduleDisplay;
 
+// Tampilkan keterangan sejak kapan jadwal tersimpan berlaku.
+function renderScheduleEffectiveInfo(){
+  const el = document.getElementById('h-schedule-eff-info');
+  if(!el) return;
+  el.textContent = _savedScheduleEffective
+    ? `Berlaku sejak ${fmtEffectiveDate(_savedScheduleEffective)}`
+    : 'Tanggal mulai berlaku belum tercatat';
+}
+
+// "2026-08-04" → "4 Agustus 2026". Kembalikan apa adanya bila format tak dikenali.
+function fmtEffectiveDate(key){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key||'');
+  if(!m) return key||'';
+  return `${Number(m[3])} ${MONTHS[Number(m[2])-1]} ${m[1]}`;
+}
+
 // Atur tampilan tombol Edit / Simpan / Batal + hint.
 function setScheduleEditButtons(editing){
-  const ids = {edit:'h-edit-schedule-btn', save:'h-save-edit-btn', cancel:'h-cancel-edit-btn', hint:'h-edit-hint'};
+  const ids = {edit:'h-edit-schedule-btn', save:'h-save-edit-btn', cancel:'h-cancel-edit-btn',
+               hint:'h-edit-hint', dl:'h-download-schedule-btn'};
   const eb=document.getElementById(ids.edit), sb=document.getElementById(ids.save),
-        cb=document.getElementById(ids.cancel), hb=document.getElementById(ids.hint);
+        cb=document.getElementById(ids.cancel), hb=document.getElementById(ids.hint),
+        db=document.getElementById(ids.dl);
+  if(db) db.style.display = editing ? 'none' : ''; // unduh hanya untuk jadwal aktif tersimpan
   if(eb) eb.style.display = editing ? 'none' : '';
   if(sb) sb.style.display = editing ? '' : 'none';
   if(cb) cb.style.display = editing ? '' : 'none';
   if(hb) hb.style.display = editing ? '' : 'none';
+}
+
+// Susun urutan baris tabel jadwal: user yang ada di `source` (mode edit sudah berisi semua
+// user aktif), lalu user aktif yang belum punya jadwal sama sekali.
+// `schedule` = jadwal tersimpan asli, dipakai menandai baris "belum diatur".
+// Dipakai bersama oleh render tabel & ekspor Excel agar urutannya selalu sama.
+function buildScheduleRows(source, schedule){
+  const src = source || {};
+  const origScheduledUids = new Set(Object.keys(schedule || {}));
+  const rows = [];
+  Object.keys(src).forEach(uid=>{
+    const user = users.find(u=>u.id===uid);
+    rows.push({
+      uid,
+      label: user ? (user.name||user.username||uid) : uid,
+      username: user ? (user.username||user.id) : uid,
+      week: src[uid]||{},
+      unscheduled: !origScheduledUids.has(uid),
+      inSource: true
+    });
+  });
+  const sourceUids = new Set(Object.keys(src));
+  users.filter(u => u.status !== 'cuti' && !sourceUids.has(u.id)).forEach(user=>{
+    rows.push({
+      uid: user.id,
+      label: user.name||user.username||user.id,
+      username: user.username||user.id,
+      week: {},
+      unscheduled: true,
+      inSource: false
+    });
+  });
+  return rows;
 }
 
 // Render tabel jadwal dari cache (mode lihat) atau scheduleEditData (mode edit).
@@ -1268,21 +1324,7 @@ function renderSavedSchedule(){
   const DAY_NAMES  = ['Sabtu','Ahad','Senin','Selasa','Rabu','Kamis'];
   const DAY_INDICES= [6,0,1,2,3,4];
 
-  const activeUsers = users.filter(u => u.status !== 'cuti');
-  const origScheduledUids = new Set(Object.keys(schedule));
-
-  // Susun urutan baris: user yang ada di source (mode edit sudah berisi semua user aktif),
-  // lalu user aktif yang belum punya jadwal (hanya relevan di mode lihat).
-  const rows = [];
-  Object.keys(source).forEach(uid=>{
-    const user = users.find(u=>u.id===uid);
-    rows.push({uid, label:user?(user.name||user.username||uid):uid, week:source[uid]||{}, unscheduled:!origScheduledUids.has(uid)});
-  });
-  const sourceUids = new Set(Object.keys(source));
-  const unscheduled = activeUsers.filter(u => !sourceUids.has(u.id));
-  unscheduled.forEach(user=>{
-    rows.push({uid:user.id, label:user.name||user.username||user.id, week:{}, unscheduled:true});
-  });
+  const rows = buildScheduleRows(source, schedule);
 
   if(rows.length === 0){ savedEl.style.display='none'; return; }
   _scheduleRowUids = rows.map(r=>r.uid);
@@ -1323,7 +1365,7 @@ function renderSavedSchedule(){
   html += '</tbody></table>';
 
   if(!scheduleEditMode){
-    const cnt = unscheduled.length;
+    const cnt = rows.filter(r=>!r.inSource).length;
     if(cnt > 0){
       html += `<div style="margin-top:8px;padding:8px 12px;background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px;font-size:11px;color:#92400e;font-weight:600">
         ⚠️ ${cnt} pengguna belum memiliki jadwal. Klik <b>✏️ Edit di Tempat</b> untuk mengaturnya langsung, atau upload template.
@@ -1334,6 +1376,70 @@ function renderSavedSchedule(){
   savedEl.style.display = '';
 }
 window.renderSavedSchedule = renderSavedSchedule;
+
+// ── Download jadwal aktif ke Excel ──
+// Mengunduh jadwal yang berlaku sekarang (tersimpan di config/schedule) dengan format
+// kolom yang sama seperti template, sehingga file hasil unduhan bisa diedit lalu
+// diupload kembali. Dua baris judul di atas tabel tetap terbaca parser (mencari
+// baris header "Username" pada 5 baris pertama).
+function downloadActiveSchedule(){
+  if(!window.XLSX){ prewarmXLSX(); showToast('⏳ Menyiapkan modul Excel, klik lagi sebentar…',false); return; }
+  const schedule = _savedScheduleCache || {};
+  if(Object.keys(schedule).length === 0){ showToast('Belum ada jadwal aktif untuk diunduh',false); return; }
+
+  const SESS_KEYS  = SESSIONS.map(s=>s.key);
+  const DAY_NAMES  = ['Sabtu','Ahad','Senin','Selasa','Rabu','Kamis'];
+  const DAY_INDICES= [6,0,1,2,3,4];
+  const rows = buildScheduleRows(schedule, schedule);
+
+  const totalCols = 2 + DAY_NAMES.length * SESS_KEYS.length;
+  const pad = (arr)=>[...arr, ...Array(Math.max(0, totalCols-arr.length)).fill('')];
+
+  const todayKey = dateToKey(new Date());
+  const effLabel = _savedScheduleEffective
+    ? `Berlaku sejak ${fmtEffectiveDate(_savedScheduleEffective)}`
+    : 'Tanggal mulai berlaku belum tercatat';
+
+  // Baris 1-2: judul & keterangan berlaku, baris 3: grup hari, baris 4: header kolom.
+  const titleRow = pad(['JADWAL PELAJARAN AKTIF']);
+  const metaRow  = pad([`${effLabel} — diunduh ${fmtEffectiveDate(todayKey)}`]);
+  const dayGroupRow = ['',''];
+  DAY_NAMES.forEach(d=>{
+    dayGroupRow.push(d);
+    for(let i=1;i<SESS_KEYS.length;i++) dayGroupRow.push('');
+  });
+  const colHeaders = [];
+  DAY_NAMES.forEach(d => SESS_KEYS.forEach(s => colHeaders.push(d+'_'+s)));
+  const headerRow = ['Username','Nama',...colHeaders];
+
+  const dataRows = rows.map(row=>{
+    const cells = [row.username, row.label];
+    DAY_INDICES.forEach(dayIdx=>{
+      const dayData = row.week[dayIdx] || {};
+      SESS_KEYS.forEach(s=>cells.push(dayData[s] === true ? 1 : 0));
+    });
+    return cells;
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet([titleRow, metaRow, dayGroupRow, headerRow, ...dataRows]);
+  ws['!cols'] = [{wch:18},{wch:28},...colHeaders.map(()=>({wch:5}))];
+  // Gabungkan judul (baris 1-2) dan tiap grup hari (baris 3) agar mudah dibaca.
+  const merges = [
+    {s:{r:0,c:0}, e:{r:0,c:totalCols-1}},
+    {s:{r:1,c:0}, e:{r:1,c:totalCols-1}}
+  ];
+  DAY_NAMES.forEach((_,di)=>{
+    const start = 2 + di*SESS_KEYS.length;
+    merges.push({s:{r:2,c:start}, e:{r:2,c:start+SESS_KEYS.length-1}});
+  });
+  ws['!merges'] = merges;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Jadwal Aktif');
+  xlsxDownload(wb, `Jadwal_Aktif_${_savedScheduleEffective || todayKey}.xlsx`);
+  if(!isIOS) showToast('✅ Jadwal aktif berhasil diunduh');
+}
+window.downloadActiveSchedule = downloadActiveSchedule;
 
 // Masuk mode edit: salin jadwal saat ini, siapkan slot kosong untuk semua user aktif.
 async function toggleScheduleEdit(){
