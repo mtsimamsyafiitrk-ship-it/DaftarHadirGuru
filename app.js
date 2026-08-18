@@ -77,6 +77,13 @@ import {
   hapusSatuHariLibur, hapusSemuaHariLibur
 } from "./js/hari-libur.js";
 
+import {
+  KET_TYPES, getKetType, loadKetHarianMonth, resetKetCache,
+  getKetHarian, getKetLockedSessions, getKetForSession,
+  isKetFullDay, getKetEntriesForMonth,
+  saveKetHarian, deleteKetHarian
+} from "./js/keterangan-harian.js";
+
 // Ekspos ke window untuk dipanggil dari HTML onclick
 window.refreshRincianLibur = refreshRincianLibur;
 window.renderRincianLibur = renderRincianLibur;
@@ -245,6 +252,8 @@ async function doLogin(){
       try{ globalSchedule = await getHolidaySchedule(); }catch(e){ globalSchedule = {}; }
       // Load substitusi bulan ini
       try{ await loadSubstitutionsForMonth(TODAY.getFullYear(), TODAY.getMonth()); }catch(e){}
+      // Load keterangan harian bulan ini (untuk kunci sesi)
+      try{ await loadKetHarianMonth(TODAY.getFullYear(), TODAY.getMonth()); }catch(e){}
       hideLoading();
       cYear=TODAY.getFullYear();cMonth=TODAY.getMonth();cView='monthly';editDay=null;editDayW=null;selWeek=1;
       document.getElementById('u-name').textContent=currentUser.name;
@@ -269,6 +278,7 @@ window.doLogin=doLogin;
 
 function doLogout(){
   clearSession();
+  resetKetCache();
   currentUser=null;viewingUser=null;
   document.getElementById('l-user').value='';
   document.getElementById('l-pass').value='';
@@ -1653,135 +1663,522 @@ window.saveScheduleEdits = saveScheduleEdits;
 
 
 // ══════════════════════════════════════════════════════════
-// ── KETERANGAN KETIDAKHADIRAN ──
+// ── KETERANGAN KEHADIRAN (HARIAN & RENTANG) ──
 // ══════════════════════════════════════════════════════════
+// Dua tampilan, satu sumber data (collection 'ket_harian'):
+//   • Tab "Harian"          : pilih tanggal → daftar guru yang jadwalnya aktif hari
+//                             itu → admin beri keterangan per guru, untuk seluruh
+//                             sesi terjadwal atau sebagian sesi saja.
+//   • Tab "Daftar Bulanan"  : rekap keterangan sebulan + tambah untuk beberapa hari
+//                             (rentang tanggal di-expand menjadi entri harian).
+// Keterangan mengunci sesi terkait pada isian guru; admin tetap bisa mengubah.
 
 let ketYear = TODAY.getFullYear();
 let ketMonth = TODAY.getMonth();
-let ketType = ''; // 'sakit' | 'izin' | 'luar'
+let ketType = '';           // jenis pada modal rentang
+let ketTab = 'harian';
 
-// ── Firestore helpers ──
-async function loadKeterangans(y, m){
-  const monthKey = dk(y,m,1).slice(0,7); // "YYYY-MM"
-  const snap = await getDocs(collection(fs,'keterangans'));
-  return snap.docs
-    .map(d=>({id:d.id,...d.data()}))
-    .filter(k=>{
-      // filter yang punya date range overlap dengan bulan ini
-      const from = k.dateFrom||''; const to = k.dateTo||k.dateFrom||'';
-      return from.slice(0,7)<=monthKey && to.slice(0,7)>=monthKey;
-    });
-}
-async function saveKeteranganDoc(data){
-  const id = data.id || Date.now().toString();
-  await setDoc(doc(fs,'keterangans',id), {...data, id});
-  return id;
-}
-async function deleteKeteranganDoc(id){
-  await deleteDoc(doc(fs,'keterangans',id));
+// Tanggal aktif pada tab Harian
+let harDate = new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate());
+
+// State modal keterangan harian
+let khScheduled = [];        // sesi yang boleh diberi keterangan (jadwal guru hari itu)
+let khSelected = new Set();  // sesi yang dicentang admin
+let khType = '';
+
+// ── Helpers ──
+
+// Sesi yang dijadwalkan untuk uid pada hari dayJsIdx.
+// Bila jadwal user belum pernah diatur sama sekali → anggap semua sesi
+// (konsisten dengan perhitungan rekap "Belum Lengkap").
+function ketScheduledSessions(uid, dayJsIdx){
+  const day = getUserDaySchedule(uid, dayJsIdx);
+  if(day === null){
+    return userHasAnySchedule(uid) ? [] : SESSIONS.map(s=>s.key);
+  }
+  return SESSIONS.filter(s=>day[s.key]===true).map(s=>s.key);
 }
 
-// ── Bulan navigator ──
+// Urutkan daftar sesi mengikuti urutan SESSIONS.
+function sortSessKeys(keys){
+  const order = SESSIONS.map(s=>s.key);
+  return [...new Set(keys)].sort((a,b)=>order.indexOf(a)-order.indexOf(b));
+}
+
+// Pastikan jadwal global sudah termuat (admin tidak memuatnya saat login).
+async function ensureGlobalSchedule(){
+  if(globalSchedule) return;
+  try{ globalSchedule = await getHolidaySchedule(); }catch(e){ globalSchedule = {}; }
+}
+
+// Hari kerja = bukan Jumat dan bukan hari libur.
+function isHariKerja(y, m, d){
+  return new Date(y,m,d).getDay() !== 5 && !isHolidayKey(dk(y,m,d));
+}
+
+// ── Tab switch ──
+function switchKetTab(tab){
+  ketTab = tab;
+  ['harian','daftar'].forEach(t=>{
+    const btn = document.getElementById('ktab-'+t);
+    if(btn) btn.classList.toggle('active', t===tab);
+    const view = document.getElementById('ket-view-'+t);
+    if(view) view.style.display = t===tab ? '' : 'none';
+  });
+  if(tab==='harian') renderHarianPage(); else renderKetListPage();
+}
+window.switchKetTab = switchKetTab;
+
+// Dipanggil dari adminNav('keterangan')
+function renderKetPage(){
+  switchKetTab(ketTab);
+}
+window.renderKetPage = renderKetPage;
+
+// ══════════════════════════════════════════════════════════
+// TAB HARIAN
+// ══════════════════════════════════════════════════════════
+
+const harKey = () => dk(harDate.getFullYear(), harDate.getMonth(), harDate.getDate());
+
+// Geser tanggal, lewati Jumat (tidak ada KBM).
+function harShiftDay(delta){
+  do { harDate.setDate(harDate.getDate()+delta); } while(harDate.getDay()===5);
+  renderHarianPage();
+}
+function harPrevDay(){ harShiftDay(-1); }
+function harNextDay(){ harShiftDay(1); }
+function harToday(){
+  harDate = new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate());
+  renderHarianPage();
+}
+function harPickDate(v){
+  if(!v) return;
+  // iOS Safari fix: 'T00:00:00' agar diparsing sebagai waktu lokal
+  const d = new Date(v+'T00:00:00');
+  if(isNaN(d.getTime())) return;
+  harDate = d;
+  renderHarianPage();
+}
+window.harPrevDay = harPrevDay;
+window.harNextDay = harNextDay;
+window.harToday = harToday;
+window.harPickDate = harPickDate;
+
+async function renderHarianPage(){
+  const y = harDate.getFullYear(), m = harDate.getMonth(), d = harDate.getDate();
+  const dow = harDate.getDay(), dateKey = dk(y,m,d);
+  document.getElementById('har-day-label').textContent = DF[dow];
+  document.getElementById('har-date-label').textContent = `${d} ${MONTHS[m]} ${y}`;
+  document.getElementById('har-date-picker').value = dateKey;
+
+  const noticeEl = document.getElementById('har-notice');
+  const sumEl    = document.getElementById('har-summary');
+  const listEl   = document.getElementById('har-list');
+  noticeEl.innerHTML = ''; sumEl.innerHTML = '';
+  listEl.innerHTML = '<div class="empty" style="margin-top:24px"><div style="font-size:36px">⏳</div><div style="font-weight:700;margin-top:8px">Memuat...</div></div>';
+
+  try{
+    await ensureGlobalSchedule();
+    try{ await loadHolidayDates(); }catch(e){}
+    await loadKetHarianMonth(y,m);
+
+    if(dow === 5){
+      noticeEl.innerHTML = `<div style="margin-bottom:12px;padding:12px 14px;background:#f1f5f9;border:1.5px solid #cbd5e1;border-radius:12px;font-size:13px;font-weight:700;color:#475569">🕌 Jumat — tidak ada KBM, tidak perlu keterangan.</div>`;
+      listEl.innerHTML = '';
+      return;
+    }
+    if(isHolidayKey(dateKey)){
+      noticeEl.innerHTML = `<div style="margin-bottom:12px;padding:12px 14px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:12px;font-size:13px;font-weight:700;color:#dc2626">🌙 Hari Libur — isian guru sudah terkunci, keterangan tidak diperlukan.</div>`;
+      listEl.innerHTML = '';
+      return;
+    }
+
+    // Hanya guru yang jadwalnya aktif hari ini
+    const rows = users
+      .filter(u => u.status !== 'cuti')
+      .map(u => ({ u, sess: ketScheduledSessions(u.id, dow) }))
+      .filter(r => r.sess.length > 0 && !isBeforeJoinDate(r.u.id, y, m, d));
+
+    if(!rows.length){
+      listEl.innerHTML = '<div class="empty" style="margin-top:24px"><div style="font-size:40px">📭</div><div style="font-weight:700;margin-top:8px">Tidak ada guru terjadwal</div><div style="font-size:13px;color:var(--muted);margin-top:4px">Tidak ada mapel/halaqah yang aktif pada hari ini</div></div>';
+      return;
+    }
+
+    // Muat kehadiran bulan ini untuk guru-guru tersebut (di-cache per bulan)
+    await Promise.all(rows.map(r => loadAttMonth(r.u.id, y, m).catch(()=>{})));
+
+    let nKet = 0, nLengkap = 0;
+    const cards = rows.map(({u, sess})=>{
+      const ket = getKetHarian(dateKey, u.id);
+      const dd  = (localDb[u.id] && localDb[u.id][dateKey]) || emptyDay();
+      const terisi = sess.filter(sk => dd[sk]);
+      if(ket) nKet++;
+      if(terisi.length === sess.length) nLengkap++;
+      const t = ket ? getKetType(ket.type) : null;
+      const lockedSet = new Set(ket && ket.sessions ? ket.sessions : []);
+
+      const chips = sess.map(sk=>{
+        const s = SESSIONS.find(x=>x.key===sk);
+        const locked = lockedSet.has(sk);
+        if(locked && t){
+          return `<span class="chip" style="background:${t.bg};border:1px solid ${t.color}55;color:${t.color};font-size:10px;padding:2px 7px">${t.icon}${sk}</span>`;
+        }
+        const on = dd[sk];
+        return `<span class="chip" style="background:${on?s.color+'18':'var(--bg2)'};border:1px solid ${on?s.color+'44':'var(--border)'};color:${on?s.color:'var(--muted)'};font-size:10px;padding:2px 7px">${on?'✅':'⬜'}${sk}</span>`;
+      }).join('');
+
+      const ketLine = ket
+        ? `<div style="font-size:11px;font-weight:800;color:${t?t.color:'var(--muted)'};margin-top:4px">${t?t.icon+' '+t.label:ket.type} — ${ket.allDay?'seluruh sesi':ket.sessions.length+' sesi'} 🔒${ket.kegiatanNama?` · ${ket.kegiatanNama}`:''}${ket.catatan?` · ${ket.catatan}`:''}</div>`
+        : `<div style="font-size:11px;font-weight:600;color:var(--muted);margin-top:4px">${terisi.length}/${sess.length} sesi terisi</div>`;
+
+      return `<div class="ucard fade-in" style="cursor:pointer;padding:12px 14px;border-left:4px solid ${t?t.color:'var(--border)'}" onclick="openKhModal('${u.id}')">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:34px;height:34px;border-radius:10px;background:${t?t.color:'linear-gradient(135deg,#7fb3a0,#5a9b86)'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;flex-shrink:0">${t?t.icon:u.name[0].toUpperCase()}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:800;font-size:13px;color:var(--text)">${u.name}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">${chips}</div>
+            ${ketLine}
+          </div>
+          <div style="font-size:18px;color:var(--muted);flex-shrink:0">›</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    sumEl.innerHTML = `<div style="margin-bottom:10px;padding:9px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;font-size:12px;font-weight:700;color:var(--muted)">👥 ${rows.length} guru terjadwal · ✅ ${nLengkap} lengkap · 📋 ${nKet} berketerangan</div>`;
+    listEl.innerHTML = cards;
+
+  }catch(e){
+    listEl.innerHTML = `<div class="empty"><div style="color:var(--rose2);font-weight:700">Gagal memuat: ${e.message}</div></div>`;
+  }
+}
+window.renderHarianPage = renderHarianPage;
+
+// ── Modal keterangan harian ──
+
+function openKhModal(uid){
+  const y = harDate.getFullYear(), m = harDate.getMonth(), d = harDate.getDate();
+  const dow = harDate.getDay(), dateKey = dk(y,m,d);
+  const u = users.find(x=>x.id===uid);
+  if(!u) return;
+
+  const existing = getKetHarian(dateKey, uid);
+  // Sertakan sesi yang terkunci walau sudah tidak terjadwal lagi (jadwal berubah),
+  // agar admin tetap bisa membuka kuncinya.
+  khScheduled = sortSessKeys([...ketScheduledSessions(uid, dow), ...(existing && existing.sessions ? existing.sessions : [])]);
+  khType = existing ? existing.type : '';
+  khSelected = new Set(existing && existing.sessions && existing.sessions.length ? existing.sessions : khScheduled);
+
+  document.getElementById('kh-uid').value = uid;
+  document.getElementById('kh-date').value = dateKey;
+  document.getElementById('kh-title').textContent = existing ? '✏️ Ubah Keterangan' : '📅 Beri Keterangan';
+  document.getElementById('kh-sub').textContent = `${u.name} — ${DF[dow]}, ${d} ${MONTHS[m]} ${y}`;
+  document.getElementById('kh-catatan').value = existing ? (existing.catatan||'') : '';
+  document.getElementById('kh-kegiatan').value = existing ? (existing.kegiatanNama||'') : '';
+  document.getElementById('kh-delete-btn').style.display = existing ? '' : 'none';
+
+  renderKhTypes();
+  renderKhSessions();
+  openModal('modal-ket-harian');
+}
+window.openKhModal = openKhModal;
+
+function renderKhTypes(){
+  document.getElementById('kh-types').innerHTML = KET_TYPES.map(t=>{
+    const active = t.key === khType;
+    return `<button onclick="khSetType('${t.key}')" style="padding:9px 4px;border-radius:10px;border:2px solid ${active?t.color:'var(--border)'};background:${active?t.color+'22':'var(--card)'};color:${active?t.color:'var(--muted)'};font-weight:800;font-size:11px;cursor:pointer;line-height:1.3">${t.icon}<br>${t.label}</button>`;
+  }).join('');
+  const info = document.getElementById('kh-type-info');
+  const t = getKetType(khType);
+  if(t){
+    info.style.display = '';
+    info.style.background = t.bg;
+    info.style.color = t.color;
+    info.textContent = t.info;
+  } else {
+    info.style.display = 'none';
+  }
+  document.getElementById('kh-kegiatan-wrap').style.display = khType==='luar' ? '' : 'none';
+}
+
+function khSetType(key){
+  khType = key;
+  renderKhTypes();
+  renderKhSessions();
+}
+window.khSetType = khSetType;
+
+function renderKhSessions(){
+  const t = getKetType(khType);
+  const col = t ? t.color : '#5a9b86';
+  const bg  = t ? t.bg : '#f0fdf4';
+  document.getElementById('kh-sessions').innerHTML = khScheduled.map(sk=>{
+    const s = SESSIONS.find(x=>x.key===sk);
+    const on = khSelected.has(sk);
+    return `<button onclick="khToggleSess('${sk}')" title="${s?s.desc:sk}" style="padding:7px 11px;border-radius:10px;border:2px solid ${on?col:'var(--border)'};background:${on?bg:'var(--card)'};color:${on?col:'var(--muted)'};font-weight:800;font-size:12px;cursor:pointer">${on?'✓ ':''}${s?s.icon:''}${sk}</button>`;
+  }).join('') || '<div style="font-size:12px;color:var(--muted);font-weight:600">Tidak ada sesi terjadwal pada hari ini.</div>';
+
+  const allBtn = document.getElementById('kh-all-btn');
+  const allOn = khScheduled.length>0 && khSelected.size === khScheduled.length;
+  allBtn.textContent = allOn ? 'Kosongkan pilihan' : 'Seluruh sesi';
+  updateKhEffect();
+}
+
+function khToggleSess(sk){
+  if(khSelected.has(sk)) khSelected.delete(sk); else khSelected.add(sk);
+  renderKhSessions();
+}
+window.khToggleSess = khToggleSess;
+
+function khToggleAll(){
+  if(khSelected.size === khScheduled.length) khSelected.clear();
+  else khScheduled.forEach(sk=>khSelected.add(sk));
+  renderKhSessions();
+}
+window.khToggleAll = khToggleAll;
+
+function updateKhEffect(){
+  const el = document.getElementById('kh-effect');
+  const t = getKetType(khType);
+  const sel = sortSessKeys([...khSelected]);
+  if(!t || !sel.length){
+    el.style.background = 'var(--bg2)'; el.style.color = 'var(--muted)';
+    el.textContent = !t ? 'Pilih jenis keterangan terlebih dahulu.' : 'Pilih minimal satu sesi.';
+    return;
+  }
+  const uid = document.getElementById('kh-uid').value;
+  const dateKey = document.getElementById('kh-date').value;
+  const dd = (localDb[uid] && localDb[uid][dateKey]) || emptyDay();
+  const bentrok = t.hadir ? [] : sel.filter(sk=>dd[sk]);
+  const lingkup = (khScheduled.length && sel.length===khScheduled.length) ? 'seluruh sesi' : `${sel.length} sesi`;
+  el.style.background = t.bg; el.style.color = t.color;
+  el.innerHTML = `${t.icon} <b>${t.label}</b> — ${lingkup} (${sel.join(', ')}) akan ${t.hadir?'diisi HADIR':'dikosongkan'} & dikunci untuk guru.`
+    + (bentrok.length ? `<br><span style="color:#b91c1c">⚠️ ${bentrok.length} sesi yang sudah diisi guru (${bentrok.join(', ')}) akan dikosongkan.</span>` : '');
+}
+
+async function khSave(){
+  const uid = document.getElementById('kh-uid').value;
+  const dateKey = document.getElementById('kh-date').value;
+  const u = users.find(x=>x.id===uid);
+  const t = getKetType(khType);
+  const sessions = sortSessKeys([...khSelected]);
+  const catatan = document.getElementById('kh-catatan').value.trim();
+  const kegiatanNama = document.getElementById('kh-kegiatan').value.trim();
+
+  if(!t){ showToast('Pilih jenis keterangan', false); return; }
+  if(!sessions.length){ showToast('Pilih minimal satu sesi', false); return; }
+  if(khType==='luar' && !kegiatanNama){ showToast('Isi nama kegiatan', false); return; }
+
+  const dd = (localDb[uid] && localDb[uid][dateKey]) || emptyDay();
+  if(!t.hadir){
+    const terisi = sessions.filter(sk=>dd[sk]);
+    if(terisi.length && !confirm(
+      `${u ? u.name : 'Guru ini'} sudah mengisi ${terisi.length} sesi (${terisi.join(', ')}) pada tanggal ini.\n\n` +
+      `Tandai "${t.label}" dan kosongkan sesi tersebut?`)) return;
+  }
+
+  showLoading('Menyimpan keterangan...');
+  try{
+    const allDay = khScheduled.length>0 && sessions.length === khScheduled.length;
+    await saveKetHarian({ dateKey, uid, type: khType, sessions, allDay, catatan,
+                          kegiatanNama: khType==='luar' ? kegiatanNama : '' });
+    await applyKetToAtt(uid, dateKey, sessions, t.hadir);
+    hideLoading();
+    closeModal('modal-ket-harian');
+    showToast(`✅ Keterangan ${t.label} tersimpan & sesi dikunci`);
+    renderHarianPage();
+  }catch(e){ hideLoading(); showToast('Gagal: '+e.message, false); }
+}
+window.khSave = khSave;
+
+async function khDelete(){
+  const uid = document.getElementById('kh-uid').value;
+  const dateKey = document.getElementById('kh-date').value;
+  if(!confirm('Hapus keterangan ini?\n\nKunci sesi akan dibuka sehingga guru bisa mengisi kembali. Data kehadiran yang sudah dikosongkan TIDAK dikembalikan.')) return;
+  showLoading('Menghapus...');
+  try{
+    await deleteKetHarian(dateKey, uid);
+    hideLoading();
+    closeModal('modal-ket-harian');
+    showToast('✅ Keterangan dihapus — kunci dibuka');
+    renderHarianPage();
+  }catch(e){ hideLoading(); showToast('Gagal: '+e.message, false); }
+}
+window.khDelete = khDelete;
+
+// Terapkan efek keterangan ke data kehadiran satu tanggal.
+// hadir=true  → sesi diisi; hadir=false → sesi dikosongkan.
+async function applyKetToAtt(uid, dateKey, sessions, hadir){
+  const cur = (localDb[uid] && localDb[uid][dateKey]) || null;
+  const updated = { ...emptyDay(), ...(cur||{}) };
+  let changed = false;
+  sessions.forEach(sk=>{ if(updated[sk] !== hadir){ updated[sk] = hadir; changed = true; } });
+  if(!changed) return false;
+  if(!localDb[uid]) localDb[uid] = {};
+  localDb[uid][dateKey] = updated;
+  await saveAtt(uid, dateKey, updated);
+  return true;
+}
+
+// ══════════════════════════════════════════════════════════
+// TAB DAFTAR BULANAN
+// ══════════════════════════════════════════════════════════
+
 function ketPrevMonth(){
   ketMonth--; if(ketMonth<0){ketMonth=11;ketYear--;}
-  renderKetPage();
+  renderKetListPage();
 }
 function ketNextMonth(){
   ketMonth++; if(ketMonth>11){ketMonth=0;ketYear++;}
-  renderKetPage();
+  renderKetListPage();
 }
-window.ketPrevMonth=ketPrevMonth;
-window.ketNextMonth=ketNextMonth;
+window.ketPrevMonth = ketPrevMonth;
+window.ketNextMonth = ketNextMonth;
 
-// ── Render halaman ──
-async function renderKetPage(){
+// Gabungkan entri harian yang berurutan (jenis & sesi sama) menjadi satu baris rentang.
+// Jeda yang hanya berisi hari Jumat / hari libur tetap dianggap berurutan.
+function groupKetEntries(entries){
+  const sig = e => `${e.uid}|${e.type}|${(e.sessions||[]).join(',')}|${e.kegiatanNama||''}|${e.catatan||''}`;
+  const byKey = {};
+  entries.forEach(e=>{ (byKey[sig(e)] = byKey[sig(e)] || []).push(e); });
+  const groups = [];
+  Object.values(byKey).forEach(list=>{
+    list.sort((a,b)=>a.dateKey.localeCompare(b.dateKey));
+    let cur = null;
+    list.forEach(e=>{
+      if(cur && isKetContiguous(cur.dateTo, e.dateKey)){
+        cur.dateTo = e.dateKey;
+        cur.dates.push(e.dateKey);
+      } else {
+        cur = { ...e, dateFrom: e.dateKey, dateTo: e.dateKey, dates: [e.dateKey] };
+        groups.push(cur);
+      }
+    });
+  });
+  return groups.sort((a,b)=>a.dateFrom.localeCompare(b.dateFrom));
+}
+
+// Apakah antara prevKey dan nextKey hanya ada hari non-kerja?
+function isKetContiguous(prevKey, nextKey){
+  const prev = new Date(prevKey+'T00:00:00');
+  const next = new Date(nextKey+'T00:00:00');
+  const cur = new Date(prev.getTime());
+  cur.setDate(cur.getDate()+1);
+  while(cur < next){
+    if(isHariKerja(cur.getFullYear(), cur.getMonth(), cur.getDate())) return false;
+    cur.setDate(cur.getDate()+1);
+  }
+  return true;
+}
+
+function fmtKetDate(key){
+  const [y,m,d] = key.split('-').map(Number);
+  return `${d} ${MONTHS[m-1]} ${y}`;
+}
+
+async function renderKetListPage(){
   document.getElementById('ket-month-label').textContent = MONTHS[ketMonth];
   document.getElementById('ket-year-label').textContent = ketYear;
   const listEl = document.getElementById('ket-list');
   listEl.innerHTML = '<div class="empty" style="margin-top:30px"><div style="font-size:36px">⏳</div><div style="font-weight:700;margin-top:8px">Memuat...</div></div>';
-  try {
-    const kets = await loadKeterangans(ketYear, ketMonth);
-    if(!kets.length){
-      listEl.innerHTML = '<div class="empty" style="margin-top:30px"><div style="font-size:40px">📋</div><div style="font-weight:700;margin-top:8px">Belum ada keterangan</div><div style="font-size:13px;color:var(--muted);margin-top:4px">Bulan ini tidak ada keterangan ketidakhadiran</div></div>';
+  try{
+    await ensureGlobalSchedule();
+    try{ await loadHolidayDates(); }catch(e){}
+    await loadKetHarianMonth(ketYear, ketMonth, true);
+    checkLegacyKeterangan();
+
+    const groups = groupKetEntries(getKetEntriesForMonth(ketYear, ketMonth));
+    if(!groups.length){
+      listEl.innerHTML = '<div class="empty" style="margin-top:30px"><div style="font-size:40px">📋</div><div style="font-weight:700;margin-top:8px">Belum ada keterangan</div><div style="font-size:13px;color:var(--muted);margin-top:4px">Bulan ini tidak ada keterangan kehadiran</div></div>';
       return;
     }
-    const typeLabel = {sakit:'🤒 Sakit', izin:'🙏 Izin', luar:'🏫 Kegiatan Luar KBM'};
-    const typeColor = {sakit:'#ef4444', izin:'#f59e0b', luar:'#5a9b86'};
-    const typeBg   = {sakit:'#fef2f2', izin:'#fffbeb', luar:'#f0fdf4'};
-    listEl.innerHTML = kets.map(k=>{
-      const u = users.find(x=>x.id===k.uid);
-      const nama = u ? u.name : k.uid;
-      const col = typeColor[k.type]||'#64748b';
-      const bg  = typeBg[k.type]||'#f8fafc';
-      const label = typeLabel[k.type]||k.type;
-      const dateStr = k.dateFrom===k.dateTo ? k.dateFrom : `${k.dateFrom} s/d ${k.dateTo}`;
-      return `<div class="ucard fade-in" style="border-left:4px solid ${col};margin-bottom:10px">
+    listEl.innerHTML = groups.map(g=>{
+      const u = users.find(x=>x.id===g.uid);
+      const nama = u ? u.name : g.uid;
+      const t = getKetType(g.type) || {icon:'📋', label:g.type, color:'#64748b', bg:'#f8fafc', hadir:false};
+      const dateStr = g.dateFrom===g.dateTo ? fmtKetDate(g.dateFrom) : `${fmtKetDate(g.dateFrom)} s/d ${fmtKetDate(g.dateTo)}`;
+      const lingkup = g.allDay ? 'Seluruh sesi' : (g.sessions||[]).join(', ');
+      return `<div class="ucard fade-in" style="border-left:4px solid ${t.color};margin-bottom:10px">
         <div style="display:flex;align-items:flex-start;gap:10px">
-          <div style="flex:1">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-              <span style="background:${bg};color:${col};border:1px solid ${col}44;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:700">${label}</span>
-              ${k.type==='luar'?'<span style="background:#dcfce7;color:#166534;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700">✅ Hadir otomatis</span>':'<span style="background:#f1f5f9;color:#64748b;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700">📭 Tetap kosong</span>'}
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
+              <span style="background:${t.bg};color:${t.color};border:1px solid ${t.color}44;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:800">${t.icon} ${t.label}</span>
+              <span style="background:${t.hadir?'#dcfce7':'#f1f5f9'};color:${t.hadir?'#166534':'#64748b'};border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700">${t.hadir?'✅ Diisi hadir':'📭 Dikosongkan'}</span>
+              <span style="background:#f1f5f9;color:#64748b;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700">🔒 ${g.dates.length} hari</span>
             </div>
             <div style="font-weight:800;font-size:14px">${nama}</div>
             <div style="font-size:12px;color:var(--muted);margin-top:2px">📅 ${dateStr}</div>
-            ${k.kegiatanNama?`<div style="font-size:12px;color:var(--sage2);margin-top:2px;font-weight:600">🏫 ${k.kegiatanNama}</div>`:''}
-            ${k.catatan?`<div style="font-size:12px;color:var(--muted);margin-top:2px">📝 ${k.catatan}</div>`:''}
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">🕐 ${lingkup}</div>
+            ${g.kegiatanNama?`<div style="font-size:12px;color:var(--sage2);margin-top:2px;font-weight:600">🏫 ${g.kegiatanNama}</div>`:''}
+            ${g.catatan?`<div style="font-size:12px;color:var(--muted);margin-top:2px">📝 ${g.catatan}</div>`:''}
           </div>
-          <div style="display:flex;flex-direction:column;gap:6px">
-            <button class="btn-icon" title="Edit" onclick="editKeterangan('${k.id}')">✏️</button>
-            <button class="btn-icon" title="Hapus" onclick="deleteKeterangan('${k.id}')">🗑️</button>
+          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+            <button class="btn-icon" title="Buka di tab Harian" onclick="ketOpenInHarian('${g.dateFrom}')">📅</button>
+            <button class="btn-icon" title="Hapus" onclick="ketDeleteGroup('${g.uid}','${g.dates.join(',')}')">🗑️</button>
           </div>
         </div>
       </div>`;
     }).join('');
-  } catch(e){ listEl.innerHTML = `<div class="empty"><div style="color:red">Gagal memuat: ${e.message}</div></div>`; }
+  }catch(e){
+    listEl.innerHTML = `<div class="empty"><div style="color:var(--rose2);font-weight:700">Gagal memuat: ${e.message}</div></div>`;
+  }
 }
-window.renderKetPage = renderKetPage;
+window.renderKetListPage = renderKetListPage;
 
-// ── Set jenis keterangan ──
+function ketOpenInHarian(dateKey){
+  harDate = new Date(dateKey+'T00:00:00');
+  switchKetTab('harian');
+}
+window.ketOpenInHarian = ketOpenInHarian;
+
+async function ketDeleteGroup(uid, dateList){
+  const dates = dateList.split(',').filter(Boolean);
+  if(!confirm(`Hapus keterangan untuk ${dates.length} hari?\n\nKunci sesi akan dibuka. Data kehadiran yang sudah dikosongkan TIDAK dikembalikan.`)) return;
+  showLoading('Menghapus...');
+  try{
+    await Promise.all(dates.map(dkey=>deleteKetHarian(dkey, uid)));
+    hideLoading();
+    showToast(`✅ ${dates.length} keterangan dihapus`);
+    renderKetListPage();
+  }catch(e){ hideLoading(); showToast('Gagal: '+e.message, false); }
+}
+window.ketDeleteGroup = ketDeleteGroup;
+
+// ── Modal tambah untuk beberapa hari (rentang tanggal) ──
+
+function renderKetTypes(){
+  document.getElementById('ket-types').innerHTML = KET_TYPES.map(t=>{
+    const active = t.key === ketType;
+    return `<button onclick="setKetType('${t.key}')" style="padding:9px 4px;border-radius:10px;border:2px solid ${active?t.color:'var(--border)'};background:${active?t.color+'22':'var(--card)'};color:${active?t.color:'var(--muted)'};font-weight:800;font-size:11px;cursor:pointer;line-height:1.3">${t.icon}<br>${t.label}</button>`;
+  }).join('');
+  const info = document.getElementById('ket-type-info');
+  const t = getKetType(ketType);
+  if(t){
+    info.style.display = '';
+    info.style.background = t.bg;
+    info.style.color = t.color;
+    info.textContent = t.info + ' Berlaku untuk seluruh sesi terjadwal pada rentang tanggal ini.';
+  } else {
+    info.style.display = 'none';
+  }
+  document.getElementById('ket-kegiatan-wrap').style.display = ketType==='luar' ? '' : 'none';
+}
+
 function setKetType(type){
   ketType = type;
-  const types = ['sakit','izin','luar'];
-  const colors = {sakit:'#ef4444', izin:'#f59e0b', luar:'#5a9b86'};
-  const infos = {
-    sakit: {bg:'#fef2f2', color:'#ef4444', text:'📭 Daftar hadir tetap kosong. Guru dianggap tidak hadir.'},
-    izin:  {bg:'#fffbeb', color:'#f59e0b', text:'📭 Daftar hadir tetap kosong. Guru dianggap tidak hadir.'},
-    luar:  {bg:'#f0fdf4', color:'#5a9b86', text:'✅ Kehadiran akan otomatis terisi penuh di hari kegiatan berlangsung.'},
-  };
-  types.forEach(t=>{
-    const btn = document.getElementById('ket-type-'+t);
-    const active = t===type;
-    btn.style.background = active ? colors[t]+'22' : 'var(--card)';
-    btn.style.color = active ? colors[t] : 'var(--muted)';
-    btn.style.border = active ? `2px solid ${colors[t]}` : '2px solid var(--border)';
-  });
-  const info = infos[type];
-  const infoEl = document.getElementById('ket-type-info');
-  infoEl.style.display = '';
-  infoEl.style.background = info.bg;
-  infoEl.style.color = info.color;
-  infoEl.textContent = info.text;
-  document.getElementById('ket-kegiatan-wrap').style.display = type==='luar' ? '' : 'none';
+  renderKetTypes();
 }
 window.setKetType = setKetType;
 
-// ── Buka modal tambah ──
 function openKetModal(){
-  document.getElementById('ket-modal-title').textContent = '📋 Tambah Keterangan';
+  document.getElementById('ket-modal-title').textContent = '📋 Tambah untuk Beberapa Hari';
   document.getElementById('ket-edit-id').value = '';
   document.getElementById('ket-catatan').value = '';
   document.getElementById('ket-kegiatan-nama').value = '';
   document.getElementById('ket-date-from').value = '';
   document.getElementById('ket-date-to').value = '';
-  document.getElementById('ket-type-info').style.display = 'none';
-  document.getElementById('ket-kegiatan-wrap').style.display = 'none';
-  // Reset type buttons
-  ['sakit','izin','luar'].forEach(t=>{
-    const btn=document.getElementById('ket-type-'+t);
-    btn.style.background='var(--card)'; btn.style.color='var(--muted)'; btn.style.border='2px solid var(--border)';
-  });
   ketType = '';
-  // Isi dropdown user
+  renderKetTypes();
   const sel = document.getElementById('ket-user');
   sel.innerHTML = '<option value="">-- Pilih --</option>' +
     users.filter(u=>u.status!=='cuti').map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
@@ -1789,105 +2186,139 @@ function openKetModal(){
 }
 window.openKetModal = openKetModal;
 
-// ── Edit keterangan ──
-async function editKeterangan(id){
-  const snap = await getDoc(doc(fs,'keterangans',id));
-  if(!snap.exists()) return;
-  const k = snap.data();
-  document.getElementById('ket-modal-title').textContent = '✏️ Edit Keterangan';
-  document.getElementById('ket-edit-id').value = id;
-  document.getElementById('ket-date-from').value = k.dateFrom||'';
-  document.getElementById('ket-date-to').value = k.dateTo||k.dateFrom||'';
-  document.getElementById('ket-catatan').value = k.catatan||'';
-  document.getElementById('ket-kegiatan-nama').value = k.kegiatanNama||'';
-  // Isi dropdown
-  const sel = document.getElementById('ket-user');
-  sel.innerHTML = '<option value="">-- Pilih --</option>' +
-    users.filter(u=>u.status!=='cuti').map(u=>`<option value="${u.id}"${u.id===k.uid?' selected':''}>${u.name}</option>`).join('');
-  setKetType(k.type||'sakit');
-  openModal('modal-keterangan');
+// Expand rentang tanggal → entri keterangan harian (satu per hari kerja terjadwal).
+// Mengembalikan {dates:[...], skipped:number, bentrok:[{dateKey,sessions}]}
+async function planKetRange(uid, dateFrom, dateTo){
+  await ensureGlobalSchedule();
+  try{ await loadHolidayDates(); }catch(e){}
+  const plan = [], bentrok = [];
+  let skipped = 0;
+  const cur = new Date(dateFrom+'T00:00:00');
+  const end = new Date(dateTo+'T00:00:00');
+  const monthsSeen = new Set();
+  while(cur <= end){
+    const y=cur.getFullYear(), m=cur.getMonth(), d=cur.getDate(), dow=cur.getDay();
+    const dateKey = dk(y,m,d);
+    if(isHariKerja(y,m,d) && !isBeforeJoinDate(uid,y,m,d)){
+      const sess = ketScheduledSessions(uid, dow);
+      if(sess.length){
+        const mk = `${y}-${m}`;
+        if(!monthsSeen.has(mk)){ monthsSeen.add(mk); await loadAttMonth(uid,y,m).catch(()=>{}); }
+        plan.push({ dateKey, sessions: sess });
+        const dd = (localDb[uid] && localDb[uid][dateKey]) || emptyDay();
+        const terisi = sess.filter(sk=>dd[sk]);
+        if(terisi.length) bentrok.push({ dateKey, sessions: terisi });
+      } else skipped++;
+    } else skipped++;
+    cur.setDate(cur.getDate()+1);
+  }
+  return { plan, skipped, bentrok };
 }
-window.editKeterangan = editKeterangan;
 
-// ── Hapus keterangan ──
-async function deleteKeterangan(id){
-  if(!confirm('Hapus keterangan ini?')) return;
-  showLoading('Menghapus...');
-  try {
-    await deleteKeteranganDoc(id);
-    hideLoading();
-    showToast('✅ Keterangan dihapus');
-    renderKetPage();
-  } catch(e){ hideLoading(); showToast('Gagal: '+e.message, false); }
-}
-window.deleteKeterangan = deleteKeterangan;
-
-// ── Simpan keterangan ──
 async function saveKeterangan(){
   const uid = document.getElementById('ket-user').value;
   const dateFrom = document.getElementById('ket-date-from').value;
   const dateTo = document.getElementById('ket-date-to').value || dateFrom;
   const catatan = document.getElementById('ket-catatan').value.trim();
   const kegiatanNama = document.getElementById('ket-kegiatan-nama').value.trim();
-  const editId = document.getElementById('ket-edit-id').value;
+  const t = getKetType(ketType);
 
   if(!uid){ showToast('Pilih guru terlebih dahulu', false); return; }
-  if(!ketType){ showToast('Pilih jenis keterangan', false); return; }
+  if(!t){ showToast('Pilih jenis keterangan', false); return; }
   if(!dateFrom){ showToast('Pilih tanggal', false); return; }
   if(ketType==='luar' && !kegiatanNama){ showToast('Isi nama kegiatan', false); return; }
   if(dateTo < dateFrom){ showToast('Tanggal akhir harus setelah tanggal mulai', false); return; }
 
-  showLoading('Menyimpan keterangan...');
-  try {
-    const data = {uid, type:ketType, dateFrom, dateTo, catatan, kegiatanNama:ketType==='luar'?kegiatanNama:'', updatedAt:Date.now()};
-    if(editId) data.id = editId;
-    const id = await saveKeteranganDoc(data);
-
-    // Jika kegiatan luar KBM → isi kehadiran otomatis di tanggal tersebut
-    if(ketType==='luar'){
-      showLoading('Mengisi kehadiran otomatis...');
-      const user = users.find(u=>u.id===uid);
-      await loadAtt(uid);
-      const savePromises = [];
-      // iOS Safari fix: tambah 'T00:00:00' agar diparsing sebagai local time bukan UTC
-      let cur = new Date(dateFrom + 'T00:00:00');
-      const end = new Date(dateTo + 'T00:00:00');
-      while(cur <= end){
-        const dow = cur.getDay();
-        if(dow !== 5){ // skip Jumat
-          const y=cur.getFullYear(), m=cur.getMonth(), d=cur.getDate();
-          if(!isBeforeJoinDate(uid,y,m,d)){
-            const dateKey = dk(y,m,d);
-            // Cek jadwal user — jika ada, pakai jadwal; jika tidak, isi semua sesi
-            const schedule = await getHolidaySchedule();
-            const userSched = schedule[uid];
-            let dayData;
-            if(userSched && userSched[dow]){
-              dayData = {...emptyDay(), ...userSched[dow]};
-            } else if(userSched){
-              dayData = emptyDay(); // tidak ada jadwal hari ini → skip
-            } else {
-              dayData = SESSIONS.reduce((a,s)=>({...a,[s.key]:true}),{});
-            }
-            if(Object.values(dayData).some(v=>v)){
-              if(!localDb[uid]) localDb[uid]={};
-              localDb[uid][dateKey] = dayData;
-              savePromises.push(saveAtt(uid, dateKey, dayData));
-            }
-          }
-        }
-        cur.setDate(cur.getDate()+1);
-      }
-      await Promise.all(savePromises);
+  showLoading('Menyiapkan...');
+  try{
+    const { plan, skipped, bentrok } = await planKetRange(uid, dateFrom, dateTo);
+    hideLoading();
+    if(!plan.length){
+      showToast('Tidak ada hari terjadwal pada rentang tersebut', false);
+      return;
+    }
+    const u = users.find(x=>x.id===uid);
+    if(!t.hadir && bentrok.length){
+      const totalSesi = bentrok.reduce((a,b)=>a+b.sessions.length,0);
+      if(!confirm(
+        `${u ? u.name : 'Guru ini'} sudah mengisi ${totalSesi} sesi pada ${bentrok.length} hari di rentang tersebut.\n\n` +
+        `Tandai "${t.label}" untuk ${plan.length} hari dan kosongkan sesi tersebut?`)) return;
     }
 
+    showLoading(`Menyimpan ${plan.length} hari...`);
+    for(const item of plan){
+      await saveKetHarian({
+        dateKey: item.dateKey, uid, type: ketType,
+        sessions: item.sessions, allDay: true, catatan,
+        kegiatanNama: ketType==='luar' ? kegiatanNama : ''
+      });
+      await applyKetToAtt(uid, item.dateKey, item.sessions, t.hadir);
+    }
     hideLoading();
     closeModal('modal-keterangan');
-    showToast('✅ Keterangan berhasil disimpan' + (ketType==='luar'?' & kehadiran diisi otomatis':''));
-    renderKetPage();
-  } catch(e){ hideLoading(); showToast('Gagal: '+e.message, false); }
+    showToast(`✅ ${t.label} tersimpan untuk ${plan.length} hari${skipped?` (${skipped} hari dilewati)`:''}`);
+    renderKetListPage();
+  }catch(e){ hideLoading(); showToast('Gagal: '+e.message, false); }
 }
 window.saveKeterangan = saveKeterangan;
+
+// ── Konversi data keterangan format lama (collection 'keterangans') ──
+
+let legacyKetDocs = null;
+
+async function checkLegacyKeterangan(){
+  const banner = document.getElementById('ket-migrate-banner');
+  if(!banner) return;
+  if(legacyKetDocs === null){
+    try{
+      const snap = await getDocs(collection(fs,'keterangans'));
+      legacyKetDocs = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    }catch(e){ legacyKetDocs = []; }
+  }
+  if(!legacyKetDocs.length){ banner.style.display = 'none'; return; }
+  banner.style.display = '';
+  banner.innerHTML = `<div style="margin-bottom:12px;padding:12px 14px;background:#fffbeb;border:1.5px solid #fde047;border-radius:12px;font-size:12px;font-weight:700;color:#854d0e">
+    📦 Ada ${legacyKetDocs.length} keterangan format lama yang belum mengunci isian guru.
+    <button onclick="migrateLegacyKeterangan()" style="display:block;width:100%;margin-top:8px;padding:8px;border-radius:10px;border:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-weight:800;font-size:12px;cursor:pointer">🔄 Konversi Sekarang</button>
+  </div>`;
+}
+
+async function migrateLegacyKeterangan(){
+  if(!legacyKetDocs || !legacyKetDocs.length) return;
+  if(!confirm(`Konversi ${legacyKetDocs.length} keterangan lama menjadi keterangan harian?\n\nSetiap keterangan akan diterapkan per hari terjadwal dan mengunci sesi guru.`)) return;
+  showLoading('Mengonversi...');
+  let ok = 0, gagal = 0;
+  try{
+    for(const old of legacyKetDocs){
+      try{
+        const t = getKetType(old.type) || getKetType('izin');
+        const from = old.dateFrom, to = old.dateTo || old.dateFrom;
+        if(!old.uid || !from){ gagal++; continue; }
+        const { plan } = await planKetRange(old.uid, from, to);
+        for(const item of plan){
+          await saveKetHarian({
+            dateKey: item.dateKey, uid: old.uid, type: t.key,
+            sessions: item.sessions, allDay: true,
+            catatan: old.catatan || '', kegiatanNama: old.kegiatanNama || ''
+          });
+          await applyKetToAtt(old.uid, item.dateKey, item.sessions, t.hadir);
+        }
+        await deleteKeteranganDoc(old.id);
+        ok++;
+      }catch(e){ gagal++; }
+    }
+    legacyKetDocs = null;
+    hideLoading();
+    showToast(`✅ ${ok} keterangan dikonversi${gagal?`, ${gagal} gagal`:''}`);
+    renderKetListPage();
+  }catch(e){ hideLoading(); showToast('Gagal: '+e.message, false); }
+}
+window.migrateLegacyKeterangan = migrateLegacyKeterangan;
+
+async function deleteKeteranganDoc(id){
+  await deleteDoc(doc(fs,'keterangans',id));
+}
+
 
 function printRekap(){
   const y=rekapYear,m=rekapMonth,tw=wim(y,m);
@@ -1986,6 +2417,8 @@ async function openBelumLengkapModal(){
     // Ambil jadwal dari Firestore
     const schedule = await getHolidaySchedule();
     const hasSchedule = Object.keys(schedule).length > 0;
+    // Keterangan admin bulan ini — sesi yang sudah berketerangan tidak dianggap kurang.
+    try{ await loadKetHarianMonth(y, m); }catch(e){}
     const SESS_KEYS = SESSIONS.map(s=>s.key);
     const dim2 = dim(y,m);
     const belumLengkap = [];
@@ -2012,6 +2445,9 @@ async function openBelumLengkapModal(){
         } else {
           expectedSessions = SESS_KEYS; // default semua
         }
+        // Sesi yang sudah diberi keterangan admin (sakit/izin/dinas/dll) bukan tunggakan guru.
+        const lockedKet = getKetLockedSessions(dateKey, user.id);
+        if(lockedKet.length) expectedSessions = expectedSessions.filter(sk => !lockedKet.includes(sk));
         if(expectedSessions.length === 0) continue;
 
         const dd = gdd(user.id,y,m,d);
@@ -2657,6 +3093,7 @@ window.__viewAtt=async(id)=>{
   viewingUser=u;
   showLoading('Memuat absensi...');
   await loadAtt(id);
+  try{ await loadKetHarianMonth(TODAY.getFullYear(), TODAY.getMonth()); }catch(e){}
   hideLoading();
   cYear=TODAY.getFullYear();cMonth=TODAY.getMonth();cView2='monthly';editDay=null;editDayW=null;selWeek=1;
   document.getElementById('aa-name').textContent=u.name;
@@ -2745,6 +3182,10 @@ function prevMonth(){
   if(cMonth===0){cMonth=11;cYear--;}else cMonth--;
   editDay=null;editDayW=null;selWeek=1;
   loadSubstitutionsForMonth(cYear,cMonth);
+  // Keterangan bulan tujuan dimuat asinkron, lalu tampilan disegarkan.
+  loadKetHarianMonth(cYear,cMonth)
+    .then(()=>{ if(currentUser?.isAdmin&&viewingUser) renderCurView2(); else renderCurView(); })
+    .catch(()=>{});
   const isAdmin=currentUser?.isAdmin&&viewingUser;
   if(isAdmin){
     document.getElementById('att-month2').textContent=MONTHS[cMonth];
@@ -2760,6 +3201,10 @@ function nextMonth(){
   if(cMonth===11){cMonth=0;cYear++;}else cMonth++;
   editDay=null;editDayW=null;selWeek=1;
   loadSubstitutionsForMonth(cYear,cMonth);
+  // Keterangan bulan tujuan dimuat asinkron, lalu tampilan disegarkan.
+  loadKetHarianMonth(cYear,cMonth)
+    .then(()=>{ if(currentUser?.isAdmin&&viewingUser) renderCurView2(); else renderCurView(); })
+    .catch(()=>{});
   const isAdmin=currentUser?.isAdmin&&viewingUser;
   if(isAdmin){
     document.getElementById('att-month2').textContent=MONTHS[cMonth];
@@ -2793,6 +3238,8 @@ function renderMonthlyFor(uid,targetId,canEdit){
     }
   }
   const legend=SESSIONS.map(s=>`<span class="chip" style="background:${s.color}18;border:1px solid ${s.color}44;color:${s.color}">${s.icon}${s.label}</span>`).join('');
+  // Keterangan admin hanya mengunci tampilan guru; admin melihat data apa adanya.
+  const isUserViewCal = canEdit && currentUser && uid===currentUser.id && !currentUser.isAdmin;
   let cells='';
   for(let i=0;i<f;i++)cells+='<div></div>';
   for(let d=1;d<=total;d++){
@@ -2802,12 +3249,16 @@ function renderMonthlyFor(uid,targetId,canEdit){
     const isT=d===TODAY.getDate()&&m===TODAY.getMonth()&&y===TODAY.getFullYear(),isE=editDay===d;
     const isHoliday=isHolidayDate(y,m,d);
     const isBeforeJoin=canEdit&&isBeforeJoinDate(uid,y,m,d);
+    const ketDay=getKetHarian(dk(y,m,d),uid);
+    const ketT=ketDay?getKetType(ketDay.type):null;
+    const ketFullLock=isUserViewCal&&ketDay&&ketDay.allDay;
     const cls=['cal-day',cnt>0?'has-d':'',isT?'is-today':'',isE?'editing':'',isHoliday?'holiday-day':'',isBeforeJoin?'before-join':''].filter(Boolean).join(' ');
     const dots=cnt>0?`<div class="cal-dots">${SESSIONS.filter(s=>dd[s.key]).map(s=>`<span class="dot" style="background:${s.color}"></span>`).join('')}</div>`:'';
-    const click=canEdit&&!isBeforeJoin?`onclick="window.__tglDay(${d})"`:''
+    const click=canEdit&&!isBeforeJoin&&!ketFullLock?`onclick="window.__tglDay(${d})"`:''
     const holidayOverlay=isHoliday?`<div class="cal-holiday-mark" title="Hari Libur — sudah diisi otomatis oleh admin">🌙</div>`:'';
     const beforeJoinOverlay=isBeforeJoin?`<div class="cal-holiday-mark" title="Sebelum tanggal bergabung">🔒</div>`:'';
-    cells+=`<div class="${cls}" ${click} ${isHoliday?'title="Hari Libur — tidak dapat diubah"':''} ${isBeforeJoin?'title="Sebelum tanggal bergabung — tidak dapat diisi"':''}><div class="cal-day-num">${d}</div>${cnt>0?`<div class="cal-score">${sc}p</div>`:''} ${dots}${holidayOverlay}${beforeJoinOverlay}</div>`;
+    const ketOverlay=(ketT&&!isHoliday&&!isBeforeJoin)?`<div class="cal-holiday-mark" title="${ketT.label}${ketDay.allDay?' — seluruh sesi dikunci admin':' — '+ketDay.sessions.join(', ')+' dikunci admin'}">${ketT.icon}</div>`:'';
+    cells+=`<div class="${cls}" ${click} ${isHoliday?'title="Hari Libur — tidak dapat diubah"':''} ${isBeforeJoin?'title="Sebelum tanggal bergabung — tidak dapat diisi"':''}><div class="cal-day-num">${d}</div>${cnt>0?`<div class="cal-score">${sc}p</div>`:''} ${dots}${holidayOverlay}${beforeJoinOverlay}${ketOverlay}</div>`;
   }
   let editPanel='';
   if(canEdit&&editDay&&!isHolidayDate(y,m,editDay)){
@@ -2824,11 +3275,18 @@ function renderMonthlyFor(uid,targetId,canEdit){
       const a=dd[s.key];
       const scheduled = isUserView ? (hasSchedule ? isSessionScheduled(uid,dow,s.key) : false) : true;
       const takenBySub = incomingSubM && incomingSubM.sessions && incomingSubM.sessions.includes(s.key);
-      const disabled = !scheduled || takenBySub;
-      const disabledReason = takenBySub ? `Diisi ${incomingSubM.substituteName}` : 'Bukan jadwal Anda';
+      const ketLock = isUserView ? getKetForSession(dateKeyEdit, uid, s.key) : null;
+      const ketLt = ketLock ? getKetType(ketLock.type) : null;
+      const disabled = !scheduled || takenBySub || !!ketLock;
+      const disabledReason = ketLt ? `${ketLt.label} — dikunci admin`
+        : takenBySub ? `Diisi ${incomingSubM.substituteName}` : 'Bukan jadwal Anda';
+      const bdC = ketLt?ketLt.color:takenBySub?'#fbbf24':disabled?'#e2e8f0':a?s.color:'var(--border)';
+      const bgC = ketLt?ketLt.bg:takenBySub?'#fef9c3':disabled?'#f1f5f9':a?s.color+'22':'var(--bg2)';
+      const fgC = ketLt?ketLt.color:takenBySub?'#92400e':disabled?'#cbd5e1':a?s.color:'var(--muted)';
+      const mark = ketLt?ketLt.icon:takenBySub?'👤':disabled?'🚫':a?'✅':'⬜';
       return`<button class="sess-btn" ${disabled?'disabled':''} onclick="${disabled?'':'window.__tog(\''+uid+'\','+y+','+m+','+editDay+',\''+s.key+'\')'}"
-        style="border-color:${takenBySub?'#fbbf24':disabled?'#e2e8f0':a?s.color:'var(--border)'};background:${takenBySub?'#fef9c3':disabled?'#f1f5f9':a?s.color+'22':'var(--bg2)'};color:${takenBySub?'#92400e':disabled?'#cbd5e1':a?s.color:'var(--muted)'};cursor:${disabled?'not-allowed':'pointer'};opacity:${disabled?0.75:1}">
-        <div class="s-icon">${takenBySub?'👤':disabled?'🚫':a?'✅':'⬜'}</div><div style="font-weight:800;font-size:11px">${s.icon}${s.label}</div><div class="s-desc">${disabled?disabledReason:s.desc}</div></button>`;}).join('');
+        style="border-color:${bdC};background:${bgC};color:${fgC};cursor:${disabled?'not-allowed':'pointer'};opacity:${disabled?0.75:1}">
+        <div class="s-icon">${mark}</div><div style="font-weight:800;font-size:11px">${s.icon}${s.label}</div><div class="s-desc">${disabled?disabledReason:s.desc}</div></button>`;}).join('');
     const sc=scDay(dd),cnt=cntDay(dd);
     const extraCntM=(dd._substituteExtra||[]).length;
     const totalScM=sc+extraCntM*2,totalCntM=cnt+extraCntM;
@@ -2836,6 +3294,13 @@ function renderMonthlyFor(uid,targetId,canEdit){
       ? `<div style="padding:8px 12px;background:#fef9c3;border:1.5px solid #fbbf24;border-radius:10px;font-size:12px;font-weight:700;color:#92400e;margin-bottom:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span>👤 ${incomingSubM.substituteName} mengisi sebagai pengganti Anda (${incomingSubM.sessions.join(', ')})</span>
           <button onclick="window.__cancelSubstitute('${dateKeyEdit}','${uid}')" style="padding:3px 8px;background:#dc2626;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">✕ Batalkan</button>
+         </div>` : '';
+    // Tag keterangan admin (mengunci sesi hari ini)
+    const ketDayM = isUserView ? getKetHarian(dateKeyEdit, uid) : null;
+    const ketTM = ketDayM ? getKetType(ketDayM.type) : null;
+    const ketTagM = ketTM
+      ? `<div style="padding:8px 12px;background:${ketTM.bg};border:1.5px solid ${ketTM.color}66;border-radius:10px;font-size:12px;font-weight:700;color:${ketTM.color};margin-bottom:10px">
+          🔒 ${ketTM.icon} ${ketTM.label} — ${ketDayM.allDay?'seluruh sesi':ketDayM.sessions.join(', ')} dikunci admin${ketDayM.kegiatanNama?` · ${ketDayM.kegiatanNama}`:''}${ketDayM.catatan?` · ${ketDayM.catatan}`:''}
          </div>` : '';
     const subOutTagsM = outgoingSubsM.map(s=>
       `<div style="padding:8px 12px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;font-size:12px;font-weight:700;color:#166534;margin-bottom:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
@@ -2848,7 +3313,7 @@ function renderMonthlyFor(uid,targetId,canEdit){
          </button>` : '';
     editPanel=`<div class="edit-panel fade-in">
       <div style="font-weight:800;font-size:15px;color:var(--teal2);margin-bottom:12px">✏️ ${DF[dow]}, ${editDay} ${MONTHS[m]} ${y}</div>
-      ${subInTagM}${subOutTagsM}${noScheduleWarning}<div class="sess-grid">${btns}</div>${subBtnM}
+      ${ketTagM}${subInTagM}${subOutTagsM}${noScheduleWarning}<div class="sess-grid">${btns}</div>${subBtnM}
       <div style="margin-top:14px;text-align:center;background:var(--sage3);border:1px solid var(--sage4);border-radius:14px;padding:12px">
         <span style="color:var(--muted);font-size:13px">Skor hari ini: </span>
         <span style="font-weight:900;font-size:28px;color:var(--sage2);font-family:'Amiri',serif">${totalScM}</span>
@@ -2897,11 +3362,19 @@ function renderWeeklyFor(uid,targetId,canEdit){
         const scheduled = isUserView ? (hasSchedule ? isSessionScheduled(uid,dow,s.key) : false) : true;
         // Sesi ini sudah diisi oleh pengganti?
         const takenBySub = incomingSub && incomingSub.sessions && incomingSub.sessions.includes(s.key);
-        const disabled = !scheduled || takenBySub;
-        const disabledReason = takenBySub ? `Diisi ${incomingSub.substituteName}` : 'Bukan jadwal Anda';
+        // Sesi ini dikunci keterangan admin?
+        const ketLock = isUserView ? getKetForSession(dateKey, uid, s.key) : null;
+        const ketLt = ketLock ? getKetType(ketLock.type) : null;
+        const disabled = !scheduled || takenBySub || !!ketLock;
+        const disabledReason = ketLt ? `${ketLt.label} — dikunci admin`
+          : takenBySub ? `Diisi ${incomingSub.substituteName}` : 'Bukan jadwal Anda';
+        const bdC = ketLt?ketLt.color:takenBySub?'#fbbf24':disabled?'#e2e8f0':a?s.color:'var(--border)';
+        const bgC = ketLt?ketLt.bg:takenBySub?'#fef9c3':disabled?'#f1f5f9':a?s.color+'22':'var(--card)';
+        const fgC = ketLt?ketLt.color:takenBySub?'#92400e':disabled?'#cbd5e1':a?s.color:'var(--muted)';
+        const mark = ketLt?ketLt.icon:takenBySub?'👤':disabled?'🚫':a?'✅':'⬜';
         return`<button class="sess-btn" ${disabled?'disabled':''} onclick="${disabled?'':'window.__tog(\''+uid+'\','+y+','+m+','+d+',\''+s.key+'\')'}"
-          style="border-color:${takenBySub?'#fbbf24':disabled?'#e2e8f0':a?s.color:'var(--border)'};background:${takenBySub?'#fef9c3':disabled?'#f1f5f9':a?s.color+'22':'var(--card)'};color:${takenBySub?'#92400e':disabled?'#cbd5e1':a?s.color:'var(--muted)'};cursor:${disabled?'not-allowed':'pointer'};opacity:${disabled?0.75:1}">
-          <div>${takenBySub?'👤':disabled?'🚫':a?'✅':'⬜'} ${s.icon}${s.label}</div><div class="s-desc">${disabled?disabledReason:s.desc}</div></button>`;}).join('');
+          style="border-color:${bdC};background:${bgC};color:${fgC};cursor:${disabled?'not-allowed':'pointer'};opacity:${disabled?0.75:1}">
+          <div>${mark} ${s.icon}${s.label}</div><div class="s-desc">${disabled?disabledReason:s.desc}</div></button>`;}).join('');
       // Info substitusi masuk
       const subInTag = incomingSub
         ? `<div style="padding:8px 12px;background:#fef9c3;border:1.5px solid #fbbf24;border-radius:10px;font-size:12px;font-weight:700;color:#92400e;margin-bottom:8px;display:flex;align-items:center;gap:6px">
@@ -2919,9 +3392,21 @@ function renderWeeklyFor(uid,targetId,canEdit){
         ? `<button onclick="window.__openSubstituteModal('${dateKey}',${d},${dow})" style="width:100%;margin-top:10px;padding:10px;background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1.5px dashed #7dd3fc;border-radius:12px;color:#0369a1;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
             👤 Isi Sebagai Guru Pengganti
            </button>` : '';
-      body=`<div class="day-body open">${subInTag}${subOutTags}${noScheduleWarning}<div class="sess-grid">${btns}</div>${subBtn}</div>`;
+      const ketDayW2 = isUserView ? getKetHarian(dateKey, uid) : null;
+      const ketTW = ketDayW2 ? getKetType(ketDayW2.type) : null;
+      const ketTagW = ketTW
+        ? `<div style="padding:8px 12px;background:${ketTW.bg};border:1.5px solid ${ketTW.color}66;border-radius:10px;font-size:12px;font-weight:700;color:${ketTW.color};margin-bottom:8px">
+            🔒 ${ketTW.icon} ${ketTW.label} — ${ketDayW2.allDay?'seluruh sesi':ketDayW2.sessions.join(', ')} dikunci admin${ketDayW2.kegiatanNama?` · ${ketDayW2.kegiatanNama}`:''}${ketDayW2.catatan?` · ${ketDayW2.catatan}`:''}
+           </div>` : '';
+      body=`<div class="day-body open">${ketTagW}${subInTag}${subOutTags}${noScheduleWarning}<div class="sess-grid">${btns}</div>${subBtn}</div>`;
     }
     const isUserView2 = canEdit && currentUser && uid===currentUser.id && !currentUser.isAdmin;
+    const ketCard = getKetHarian(dk(y,m,d), uid);
+    const ketTc = ketCard ? getKetType(ketCard.type) : null;
+    const ketFullLockW = isUserView2 && ketCard && ketCard.allDay;
+    const ketTagHdr = ketTc
+      ? `<span style="font-size:10px;background:${ketTc.bg};color:${ketTc.color};border:1px solid ${ketTc.color}55;border-radius:6px;padding:1px 6px;font-weight:700">${ketTc.icon} ${ketTc.label} 🔒</span>`
+      : '';
     const dayHasSchedule = isUserView2 ? (userHasAnySchedule(uid) && getUserDaySchedule(uid,dow)!==null) : true;
     const noScheduleTag = isUserView2 && !userHasAnySchedule(uid)
       ? `<span style="font-size:10px;background:#fef9c3;color:#92400e;border:1px solid #fde047;border-radius:6px;padding:1px 6px;font-weight:700">📋 Jadwal belum diatur</span>`
@@ -2929,14 +3414,14 @@ function renderWeeklyFor(uid,targetId,canEdit){
       ? `<span style="font-size:10px;background:#f1f5f9;color:#94a3b8;border:1px solid #e2e8f0;border-radius:6px;padding:1px 6px;font-weight:700">🚫 Tidak terjadwal</span>`
       : '';
     return`<div class="day-card" style="border-color:${isT?'var(--sage)':isE?'var(--teal)':isBeforeJoin?'#94a3b8':isHoliday?'var(--rose2)':(!dayHasSchedule&&isUserView2&&!isHoliday)?'#e2e8f0':'var(--border)'}">
-      <div class="day-card-hdr" ${canEdit&&!isBeforeJoin&&(dayHasSchedule||isHoliday)?`onclick="window.__tglDayW(${d})"`:''}>
+      <div class="day-card-hdr" ${canEdit&&!isBeforeJoin&&!ketFullLockW&&(dayHasSchedule||isHoliday)?`onclick="window.__tglDayW(${d})"`:''}>
         <div class="day-num-box ${isT?'today':''}" style="${(!dayHasSchedule&&isUserView2&&!isHoliday)?'opacity:0.5':''}">
           <div style="font-weight:800;font-size:16px;line-height:1;color:${isT?'#fff':'var(--text)'}">${d}</div>
           <div style="font-size:9px;color:${isT?'rgba(255,255,255,0.8)':'var(--muted)'};font-weight:700">${DS[dow]}</div>
         </div>
         <div style="flex:1">
           <div style="font-weight:800;font-size:14px;color:${isT?'var(--sage2)':(!dayHasSchedule&&isUserView2&&!isHoliday)?'var(--muted)':'var(--text)'}">${DF[dow]}${isHoliday?` <span style="font-size:11px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;padding:1px 7px;font-weight:700;margin-left:4px">🌙 Hari Libur</span>`:''} ${isBeforeJoin?` <span style="font-size:11px;background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;border-radius:8px;padding:1px 7px;font-weight:700;margin-left:4px">🔒 Sebelum Bergabung</span>`:''}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">${noScheduleTag||(isHoliday&&cnt===0?`<span style="font-size:11px;color:#dc2626;font-weight:600">Libur — diisi otomatis admin</span>`:cnt===0?`<span style="font-size:11px;color:var(--muted);font-weight:600">Belum diisi</span>`:chips)}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">${ketTagHdr}${noScheduleTag||(isHoliday&&cnt===0?`<span style="font-size:11px;color:#dc2626;font-weight:600">Libur — diisi otomatis admin</span>`:cnt===0?`<span style="font-size:11px;color:var(--muted);font-weight:600">Belum diisi</span>`:chips)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-weight:900;font-size:24px;color:var(--sage2);font-family:'Amiri',serif">${sc+extraScCard}</div>
@@ -3502,6 +3987,13 @@ async function checkAdminNotifBadge(){
 
 // ══════════════════════════════════════════════════════════════
 
+// Pesan saat guru menyentuh hari yang seluruh sesinya dikunci keterangan admin.
+function showKetLockToast(dateKey, uid){
+  const k = getKetHarian(dateKey, uid);
+  const t = k ? getKetType(k.type) : null;
+  showToast(`🔒 Hari ini dikunci admin — ${t?t.icon+' '+t.label:'ada keterangan'}${k&&k.catatan?' ('+k.catatan+')':''}`, false);
+}
+
 window.__tog=async(uid,y,m,d,sk)=>{
   // === BLOKIR HARI LIBUR ===
   try{ await loadHolidayDates(); }catch(e){}
@@ -3527,6 +4019,13 @@ window.__tog=async(uid,y,m,d,sk)=>{
     }
     if(!isSessionScheduled(uid, dowJs, sk)){
       showToast(`🚫 Sesi ${sk} tidak termasuk jadwal Anda hari ini`,false);
+      return;
+    }
+    // === BLOKIR KETERANGAN ADMIN (kunci per sesi) ===
+    const ketLock = getKetForSession(dateKey, uid, sk);
+    if(ketLock){
+      const t = getKetType(ketLock.type);
+      showToast(`🔒 Sesi ${sk} dikunci admin — ${t?t.label:ketLock.type}`,false);
       return;
     }
   }
@@ -3561,6 +4060,7 @@ window.__tglDay=async(d)=>{
     if(!getUserDaySchedule(currentUser.id, dowJs)){
       showToast('🚫 Hari ini tidak termasuk jadwal Anda',false);return;
     }
+    if(isKetFullDay(dk(cYear,cMonth,d), currentUser.id)){ showKetLockToast(dk(cYear,cMonth,d), currentUser.id); return; }
   }
   editDay=editDay===d?null:d;renderMonthlyFor(currentUser.id,'view-monthly',true);
 };
@@ -3585,6 +4085,7 @@ window.__tglDayW=async(d)=>{
     if(!getUserDaySchedule(currentUser.id, dowJs)){
       showToast('🚫 Hari ini tidak termasuk jadwal Anda',false);return;
     }
+    if(isKetFullDay(dk(cYear,cMonth,d), currentUser.id)){ showKetLockToast(dk(cYear,cMonth,d), currentUser.id); return; }
   }
   editDayW=editDayW===d?null:d;renderWeeklyFor(currentUser.id,'view-weekly',true);
 };
@@ -4196,6 +4697,7 @@ async function restoreUserSession(found) {
   await loadHolidayDates();
   try { globalSchedule = await getHolidaySchedule(); } catch(e) { globalSchedule = {}; }
   try { await loadSubstitutionsForMonth(TODAY.getFullYear(), TODAY.getMonth()); } catch(e) {}
+  try { await loadKetHarianMonth(TODAY.getFullYear(), TODAY.getMonth()); } catch(e) {}
   hideLoading();
   cYear = TODAY.getFullYear(); cMonth = TODAY.getMonth();
   cView = 'monthly'; editDay = null; editDayW = null; selWeek = 1;

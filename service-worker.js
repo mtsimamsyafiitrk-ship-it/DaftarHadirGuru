@@ -3,7 +3,7 @@
 // Cocok untuk aplikasi yang butuh data real-time dari Firestore,
 // tapi tetap bisa diinstal sebagai PWA.
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = `dhg-${CACHE_VERSION}`;
 
 // File yang di-precache saat instalasi (shell aplikasi).
@@ -19,6 +19,7 @@ const PRECACHE_URLS = [
   './js/ui-helpers.js',
   './js/firebase.js',
   './js/hari-libur.js',
+  './js/keterangan-harian.js',
   './assets/logo.png',
   './assets/icon.png',
   './icons/icon-192.png',
