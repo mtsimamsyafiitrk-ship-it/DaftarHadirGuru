@@ -414,21 +414,48 @@
     </div>
   </div>
   <div class="body">
-    <!-- Tombol Tambah -->
-    <div style="margin-bottom:14px">
-      <button class="btn btn-sage" style="width:100%;padding:12px;font-weight:800" onclick="openKetModal()">➕ Tambah Keterangan</button>
+    <!-- Tab: Harian / Daftar Bulanan -->
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button class="btn-tab active" id="ktab-harian" onclick="switchKetTab('harian')">📅 Harian</button>
+      <button class="btn-tab" id="ktab-daftar" onclick="switchKetTab('daftar')">📋 Daftar Bulanan</button>
     </div>
-    <!-- Filter bulan -->
-    <div class="month-nav" style="margin-bottom:14px">
-      <button class="btn-nav" onclick="ketPrevMonth()">‹</button>
-      <div style="text-align:center">
-        <div id="ket-month-label" style="font-weight:800;font-size:16px;font-family:'Amiri',serif;color:var(--text)"></div>
-        <div id="ket-year-label" style="color:var(--sage2);font-size:13px;font-weight:700"></div>
+
+    <!-- ===== TAB HARIAN ===== -->
+    <div id="ket-view-harian">
+      <div class="month-nav" style="margin-bottom:10px">
+        <button class="btn-nav" onclick="harPrevDay()">‹</button>
+        <div style="text-align:center;flex:1">
+          <div id="har-day-label" style="font-weight:800;font-size:16px;font-family:'Amiri',serif;color:var(--text)"></div>
+          <div id="har-date-label" style="color:var(--sage2);font-size:13px;font-weight:700"></div>
+        </div>
+        <button class="btn-nav" onclick="harNextDay()">›</button>
       </div>
-      <button class="btn-nav" onclick="ketNextMonth()">›</button>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input id="har-date-picker" class="input" type="date" onchange="harPickDate(this.value)" style="flex:1;margin:0"/>
+        <button class="btn btn-gray" style="padding:10px 14px;font-size:12px;font-weight:800" onclick="harToday()">📍 Hari Ini</button>
+      </div>
+      <div id="har-notice"></div>
+      <div id="har-summary"></div>
+      <div id="har-list"></div>
     </div>
-    <!-- List keterangan -->
-    <div id="ket-list"></div>
+
+    <!-- ===== TAB DAFTAR BULANAN ===== -->
+    <div id="ket-view-daftar" style="display:none">
+      <div style="margin-bottom:14px">
+        <button class="btn btn-sage" style="width:100%;padding:12px;font-weight:800" onclick="openKetModal()">➕ Tambah untuk Beberapa Hari</button>
+      </div>
+      <div class="month-nav" style="margin-bottom:14px">
+        <button class="btn-nav" onclick="ketPrevMonth()">‹</button>
+        <div style="text-align:center">
+          <div id="ket-month-label" style="font-weight:800;font-size:16px;font-family:'Amiri',serif;color:var(--text)"></div>
+          <div id="ket-year-label" style="color:var(--sage2);font-size:13px;font-weight:700"></div>
+        </div>
+        <button class="btn-nav" onclick="ketNextMonth()">›</button>
+      </div>
+      <div id="ket-migrate-banner" style="display:none"></div>
+      <!-- List keterangan -->
+      <div id="ket-list"></div>
+    </div>
   </div>
   <div class="navbar"><div class="navbar-inner">
     <button class="nav-btn" id="anav-users-k" onclick="adminNav('users')"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></button>
@@ -455,11 +482,7 @@
     <!-- Jenis keterangan -->
     <div style="margin-bottom:14px">
       <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.3px">Jenis Keterangan</label>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button id="ket-type-sakit" onclick="setKetType('sakit')" style="flex:1;min-width:80px;padding:9px 6px;border-radius:10px;border:2px solid var(--border);background:var(--card);color:var(--muted);font-weight:700;font-size:12px;cursor:pointer">🤒 Sakit</button>
-        <button id="ket-type-izin" onclick="setKetType('izin')" style="flex:1;min-width:80px;padding:9px 6px;border-radius:10px;border:2px solid var(--border);background:var(--card);color:var(--muted);font-weight:700;font-size:12px;cursor:pointer">🙏 Izin</button>
-        <button id="ket-type-luar" onclick="setKetType('luar')" style="flex:1;min-width:80px;padding:9px 6px;border-radius:10px;border:2px solid var(--border);background:var(--card);color:var(--muted);font-weight:700;font-size:12px;cursor:pointer">🏫 Kegiatan Luar KBM</button>
-      </div>
+      <div id="ket-types" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
       <div id="ket-type-info" style="margin-top:8px;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;display:none"></div>
     </div>
 
@@ -485,6 +508,52 @@
       <button class="btn btn-sage" style="flex:1" onclick="saveKeterangan()">✓ Simpan</button>
       <button class="btn btn-gray" style="flex:1" onclick="closeModal('modal-keterangan')">Batal</button>
     </div>
+  </div>
+</div>
+
+<!-- ══════════════════ ADMIN: KETERANGAN HARIAN (per guru, per sesi) ══════════════════ -->
+<div id="modal-ket-harian" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal('modal-ket-harian')">
+  <div class="modal">
+    <h3 id="kh-title">📅 Keterangan Harian</h3>
+    <div id="kh-sub" style="font-size:12px;color:var(--muted);font-weight:600;margin:-6px 0 14px"></div>
+    <input type="hidden" id="kh-uid"/>
+    <input type="hidden" id="kh-date"/>
+
+    <!-- Jenis keterangan -->
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.3px">Jenis Keterangan</label>
+      <div id="kh-types" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
+      <div id="kh-type-info" style="margin-top:8px;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;display:none"></div>
+    </div>
+
+    <!-- Lingkup sesi -->
+    <div style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px">
+        <label style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px">Sesi yang Diberi Keterangan</label>
+        <button id="kh-all-btn" onclick="khToggleAll()" style="padding:5px 10px;border-radius:8px;border:1.5px solid var(--sage4);background:var(--sage3);color:var(--sage2);font-weight:800;font-size:11px;cursor:pointer;flex-shrink:0">Seluruh sesi</button>
+      </div>
+      <div id="kh-sessions" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+
+    <!-- Nama kegiatan (khusus dinas luar) -->
+    <div id="kh-kegiatan-wrap" class="input-wrap" style="display:none;margin-bottom:12px">
+      <label>Nama Kegiatan</label>
+      <input id="kh-kegiatan" class="input" placeholder="Contoh: Pelatihan Kurikulum, Rapat Dinas..."/>
+    </div>
+
+    <!-- Catatan -->
+    <div class="input-wrap" style="margin-bottom:12px">
+      <label>Catatan <span style="font-size:10px;color:var(--muted)">(opsional)</span></label>
+      <input id="kh-catatan" class="input" placeholder="Keterangan tambahan..."/>
+    </div>
+
+    <div id="kh-effect" style="margin-bottom:14px;padding:9px 12px;border-radius:10px;font-size:12px;font-weight:600;background:var(--bg2);color:var(--muted)"></div>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-sage" style="flex:1" onclick="khSave()">✓ Simpan</button>
+      <button class="btn btn-gray" style="flex:1" onclick="closeModal('modal-ket-harian')">Batal</button>
+    </div>
+    <button id="kh-delete-btn" onclick="khDelete()" style="display:none;width:100%;margin-top:8px;padding:10px;border-radius:12px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;font-weight:800;font-size:13px;cursor:pointer">🗑️ Hapus Keterangan &amp; Buka Kunci</button>
   </div>
 </div>
 
