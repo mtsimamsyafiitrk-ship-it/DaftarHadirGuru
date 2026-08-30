@@ -3,7 +3,7 @@
 // Cocok untuk aplikasi yang butuh data real-time dari Firestore,
 // tapi tetap bisa diinstal sebagai PWA.
 
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const CACHE_NAME = `dhg-${CACHE_VERSION}`;
 
 // File yang di-precache saat instalasi (shell aplikasi).
