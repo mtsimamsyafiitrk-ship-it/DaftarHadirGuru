@@ -87,6 +87,18 @@ input{font-family:inherit}
 .input[type="date"]{color-scheme:light}
 .input-wrap{position:relative;margin-bottom:12px}
 .input-wrap label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;letter-spacing:0.3px;text-transform:uppercase}
+/* ── TOGGLE SWITCH (mis. pilihan tanggal fleksibel) ── */
+.sw-row{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;margin:0}
+.sw-row .sw-title{font-weight:800;font-size:13px;color:var(--sage2);letter-spacing:0;text-transform:none}
+.sw-row .sw-sub{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;line-height:1.5}
+.sw{position:relative;flex-shrink:0;width:46px;height:26px;display:inline-block}
+.sw input{position:absolute;opacity:0;width:0;height:0}
+.sw-track{position:absolute;inset:0;background:var(--border2);border-radius:999px;transition:background .2s}
+.sw-track::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 4px rgba(45,55,72,0.28);transition:transform .2s}
+.sw input:checked + .sw-track{background:var(--sage2)}
+.sw input:checked + .sw-track::after{transform:translateX(20px)}
+.sw input:focus-visible + .sw-track{box-shadow:0 0 0 3px rgba(127,179,160,0.35)}
 /* ── HARI LIBUR STYLE ── */
 .cal-day.holiday-day{background:linear-gradient(135deg,#fff1f2,#ffe4e6)!important;border:1.5px solid #fca5a5!important;cursor:pointer!important;opacity:0.85}
 .cal-day.holiday-day .cal-day-num{color:#dc2626!important}

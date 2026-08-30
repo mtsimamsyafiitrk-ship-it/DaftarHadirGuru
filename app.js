@@ -1057,14 +1057,8 @@ async function previewSchedule(event){
     document.getElementById('h-schedule-table').innerHTML = html;
     document.getElementById('h-schedule-preview').style.display = '';
     document.getElementById('h-save-schedule-btn').style.display = '';
-    // Tampilkan input tanggal mulai berlaku; default = hari ini agar libur lama tidak tersentuh
-    const effWrap = document.getElementById('h-schedule-effective-wrap');
-    const effInput = document.getElementById('h-schedule-effective-date');
-    if(effWrap) effWrap.style.display = '';
-    if(effInput && !effInput.value){
-      const t = new Date();
-      effInput.value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
-    }
+    // Tampilkan toggle tanggal mulai berlaku; default mati = mulai hari ini agar libur lama tidak tersentuh
+    initScheduleEffectiveToggle();
   }catch(e){ errEl.textContent='Gagal baca file: '+e.message; errEl.style.display='block'; }
 }
 window.previewSchedule = previewSchedule;
@@ -1172,10 +1166,10 @@ async function parseScheduleFile(file){
 // ── Simpan jadwal ke Firestore ──
 async function saveSchedule(){
   if(!hScheduleData){ showToast('Tidak ada data jadwal',false); return; }
-  // Tanggal mulai berlaku: hari libur sebelum tanggal ini TIDAK disentuh
-  const effInput = document.getElementById('h-schedule-effective-date');
-  const effectiveDate = effInput ? effInput.value : '';
-  if(!effectiveDate){ showToast('Tentukan dulu Tanggal Mulai Berlaku',false); return; }
+  // Tanggal mulai berlaku hasil toggle: mati = hari ini, nyala = tanggal pilihan (boleh mundur).
+  // Hari libur sebelum tanggal ini TIDAK disentuh.
+  const effectiveDate = getPickedEffectiveDate();
+  if(!effectiveDate){ showToast('Pilih dulu tanggal mulai berlaku',false); return; }
   showLoading('Menyimpan jadwal...');
   try{
     // 1. Simpan jadwal baru ke Firestore + catat tanggal mulai berlaku (dipakai edit di tempat)
@@ -1224,9 +1218,9 @@ async function saveSchedule(){
 
       await Promise.all(savePromises);
       await renderRekapPage();
-      showToast(`✅ Jadwal disimpan & ${holidayDates.length} hari libur sejak ${effectiveDate} diperbarui. Data sebelumnya tidak diubah.`);
+      showToast(`✅ Jadwal disimpan & langsung diterapkan: ${holidayDates.length} hari libur sejak ${fmtEffectiveDate(effectiveDate)} diperbarui. Data sebelumnya tidak diubah.`);
     } else {
-      showToast('✅ Jadwal pelajaran berhasil disimpan! Tidak ada hari libur sejak tanggal berlaku yang perlu diperbarui.');
+      showToast(`✅ Jadwal disimpan & berlaku sejak ${fmtEffectiveDate(effectiveDate)}. Belum ada hari libur pada rentang itu yang perlu diperbarui.`);
     }
 
     loadSavedScheduleDisplay();
@@ -1234,6 +1228,8 @@ async function saveSchedule(){
     document.getElementById('h-schedule-preview').style.display = 'none';
     const effWrap = document.getElementById('h-schedule-effective-wrap');
     if(effWrap) effWrap.style.display = 'none';
+    const effToggle = document.getElementById('h-schedule-flex-toggle');
+    if(effToggle) effToggle.checked = false;
     document.getElementById('h-schedule-file').value = '';
     hideLoading();
   }catch(e){ hideLoading(); showToast('Gagal simpan: '+e.message, false); }
@@ -1275,14 +1271,123 @@ function fmtEffectiveDate(key){
   return `${Number(m[3])} ${MONTHS[Number(m[2])-1]} ${m[1]}`;
 }
 
+// ══════════════════════════════════════════════
+// ── TOGGLE TANGGAL FLEKSIBEL ──
+// ══════════════════════════════════════════════
+// Dua tempat memakai pola yang sama: satu toggle + satu input tanggal yang muncul
+// saat toggle menyala. Tanggal hasil pilihan dipakai apa adanya, langsung diterapkan
+// saat Simpan — tidak ada dialog konfirmasi lagi.
+//   • Upload jadwal  : mati = mulai hari ini, nyala = tanggal bebas (boleh mundur).
+//   • Edit di tempat : mati = hanya ke depan, nyala = terapkan mundur sejak tanggal itu.
+
+// Pasang/lepas input tanggal di bawah sebuah toggle.
+function setFlexDateVisible(inputId, on, fallbackKey){
+  const inp = document.getElementById(inputId);
+  if(!inp) return;
+  inp.style.display = on ? '' : 'none';
+  if(on && !inp.value) inp.value = fallbackKey;
+}
+
+// ── Upload jadwal: "Pilih Tanggal Mulai Berlaku" ──
+// Siapkan toggle dalam keadaan mati (= mulai hari ini) setiap kali file baru dipratinjau.
+function initScheduleEffectiveToggle(){
+  const wrap = document.getElementById('h-schedule-effective-wrap');
+  const tg   = document.getElementById('h-schedule-flex-toggle');
+  const inp  = document.getElementById('h-schedule-effective-date');
+  if(tg) tg.checked = false;
+  if(inp){ inp.value = dateToKey(new Date()); inp.style.display = 'none'; }
+  if(wrap) wrap.style.display = '';
+  renderScheduleEffectiveSub();
+}
+
+function toggleScheduleEffectiveFlex(on){
+  setFlexDateVisible('h-schedule-effective-date', on, dateToKey(new Date()));
+  renderScheduleEffectiveSub();
+}
+window.toggleScheduleEffectiveFlex = toggleScheduleEffectiveFlex;
+
+// Tanggal mulai berlaku yang sedang dipilih.
+// Toggle mati → hari ini. Toggle nyala → isi input ('' bila admin mengosongkannya).
+function getPickedEffectiveDate(){
+  const tg  = document.getElementById('h-schedule-flex-toggle');
+  const inp = document.getElementById('h-schedule-effective-date');
+  if(tg && tg.checked) return inp ? inp.value : '';
+  return dateToKey(new Date());
+}
+
+function renderScheduleEffectiveSub(){
+  const el = document.getElementById('h-schedule-eff-sub');
+  if(!el) return;
+  const tg = document.getElementById('h-schedule-flex-toggle');
+  const todayKey = dateToKey(new Date());
+  if(!(tg && tg.checked)){
+    el.textContent = `Mulai hari ini (${fmtEffectiveDate(todayKey)}) — nyalakan untuk pilih tanggal lain`;
+    return;
+  }
+  const d = getPickedEffectiveDate();
+  if(!d){ el.textContent = 'Pilih tanggalnya di bawah'; return; }
+  if(d < todayKey)      el.textContent = `Langsung diterapkan mundur sejak ${fmtEffectiveDate(d)}`;
+  else if(d > todayKey) el.textContent = `Berlaku mulai ${fmtEffectiveDate(d)} (belum lewat)`;
+  else                  el.textContent = `Mulai hari ini (${fmtEffectiveDate(d)})`;
+}
+window.renderScheduleEffectiveSub = renderScheduleEffectiveSub;
+
+// ── Edit di tempat: "Terapkan Mundur Sejak Tanggal" ──
+// Default mati = perubahan hanya berlaku ke depan. Nyala = langsung diterapkan mundur
+// sejak tanggal pilihan (default: tanggal berlaku jadwal aktif).
+function initScheduleRetroToggle(){
+  const tg  = document.getElementById('h-edit-retro-toggle');
+  const inp = document.getElementById('h-edit-retro-date');
+  if(tg) tg.checked = false;
+  if(inp){
+    inp.value = _savedScheduleEffective || dateToKey(new Date());
+    inp.style.display = 'none';
+  }
+  renderScheduleRetroSub();
+}
+
+function toggleScheduleRetroFlex(on){
+  setFlexDateVisible('h-edit-retro-date', on, _savedScheduleEffective || dateToKey(new Date()));
+  renderScheduleRetroSub();
+}
+window.toggleScheduleRetroFlex = toggleScheduleRetroFlex;
+
+// Tanggal acuan penerapan mundur. '' = tidak diterapkan mundur (hanya ke depan).
+function getPickedRetroDate(){
+  const tg  = document.getElementById('h-edit-retro-toggle');
+  if(!(tg && tg.checked)) return '';
+  const inp = document.getElementById('h-edit-retro-date');
+  return inp ? inp.value : '';
+}
+
+function renderScheduleRetroSub(){
+  const el = document.getElementById('h-edit-retro-sub');
+  if(!el) return;
+  const d = getPickedRetroDate();
+  const tg = document.getElementById('h-edit-retro-toggle');
+  if(!(tg && tg.checked)){
+    el.textContent = _savedScheduleEffective
+      ? `Mati: perubahan hanya berlaku ke depan (jadwal aktif sejak ${fmtEffectiveDate(_savedScheduleEffective)})`
+      : 'Mati: perubahan hanya berlaku ke depan';
+    return;
+  }
+  if(!d){ el.textContent = 'Pilih tanggalnya di bawah'; return; }
+  const todayKey = dateToKey(new Date());
+  el.textContent = d > todayKey
+    ? `${fmtEffectiveDate(d)} belum lewat — tidak ada tanggal lampau yang disesuaikan`
+    : `Sesi yang berubah langsung disesuaikan sejak ${fmtEffectiveDate(d)}`;
+}
+window.renderScheduleRetroSub = renderScheduleRetroSub;
+
 // Atur tampilan tombol Edit / Simpan / Batal + hint.
 function setScheduleEditButtons(editing){
   const ids = {edit:'h-edit-schedule-btn', save:'h-save-edit-btn', cancel:'h-cancel-edit-btn',
-               hint:'h-edit-hint', dl:'h-download-schedule-btn'};
+               hint:'h-edit-hint', dl:'h-download-schedule-btn', retro:'h-edit-retro-wrap'};
   const eb=document.getElementById(ids.edit), sb=document.getElementById(ids.save),
         cb=document.getElementById(ids.cancel), hb=document.getElementById(ids.hint),
-        db=document.getElementById(ids.dl);
+        db=document.getElementById(ids.dl), rb=document.getElementById(ids.retro);
   if(db) db.style.display = editing ? 'none' : ''; // unduh hanya untuk jadwal aktif tersimpan
+  if(rb) rb.style.display = editing ? '' : 'none'; // toggle terapkan mundur hanya saat mengedit
   if(eb) eb.style.display = editing ? 'none' : '';
   if(sb) sb.style.display = editing ? '' : 'none';
   if(cb) cb.style.display = editing ? '' : 'none';
@@ -1463,6 +1568,7 @@ async function toggleScheduleEdit(){
       }
     });
     scheduleEditMode = true;
+    initScheduleRetroToggle();
     setScheduleEditButtons(true);
     renderSavedSchedule();
   }catch(e){ showToast('Gagal memuat jadwal untuk diedit: '+e.message, false); }
@@ -1532,18 +1638,6 @@ function datesInRangeByDow(startKey, endKey){
   return map;
 }
 
-// Ringkasan delta untuk dialog konfirmasi.
-function summarizeDelta(delta){
-  const DF_FULL = ['Ahad','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
-  const lines = delta.slice(0,8).map(d=>{
-    const u = users.find(x=>x.id===d.uid);
-    const label = u ? (u.name||u.username||d.uid) : d.uid;
-    return `• ${d.sess} ${DF_FULL[d.day]} → ${d.newVal?'ON':'OFF'} (${label})`;
-  });
-  if(delta.length>8) lines.push(`• …dan ${delta.length-8} perubahan lain`);
-  return lines.join('\n');
-}
-
 // Terapkan delta ke tanggal-tanggal lampau. Hanya sesi yang berubah yang diubah;
 // sesi lain pada tanggal itu tidak disentuh. Return jumlah tanggal-guru yang ditulis.
 async function applyScheduleDeltaRetro(delta, dowDates){
@@ -1581,10 +1675,12 @@ async function applyScheduleDeltaRetro(delta, dowDates){
 }
 
 // Simpan hasil edit ke Firestore. Pola jadwal (config/schedule) selalu diperbarui untuk ke depan.
-// Jika ada perubahan sesi, tawarkan menerapkannya MUNDUR ke tanggal sejak jadwal terakhir berlaku —
-// hanya sesi yang berubah yang disesuaikan, data lain tidak disentuh.
+// Bila toggle "Terapkan Mundur Sejak Tanggal" menyala, perubahan sesi langsung diterapkan ke
+// tanggal lampau sejak tanggal pilihan — hanya sesi yang berubah, data lain tidak disentuh.
 async function saveScheduleEdits(){
   if(!scheduleEditMode || !scheduleEditData){ return; }
+  // Dibaca sebelum keluar mode edit, karena toggle-nya ikut disembunyikan setelah itu.
+  const retroDate = getPickedRetroDate();
   showLoading('Menyimpan perubahan jadwal...');
   try{
     // Buang slot kosong untuk user yang sebelumnya belum punya jadwal & tidak diberi sesi apa pun,
@@ -1615,47 +1711,30 @@ async function saveScheduleEdits(){
       return;
     }
 
-    // Ambil tanggal mulai berlaku jadwal terakhir; jika belum tercatat, minta sekali.
-    let effectiveDate = await getScheduleEffectiveDate();
+    // Toggle mati → cukup berlaku ke depan, tidak ada tanggal lampau yang disentuh.
     const todayKey = dateToKey(new Date());
-    if(!effectiveDate){
-      const inp = prompt('Jadwal terakhir belum punya "tanggal mulai berlaku" tersimpan.\n\nIsi tanggal acuan (format YYYY-MM-DD) untuk menerapkan perubahan mundur, atau tekan Batal untuk hanya berlaku ke depan:', todayKey);
-      if(inp && /^\d{4}-\d{2}-\d{2}$/.test(inp.trim())){
-        effectiveDate = inp.trim();
-        await setDoc(doc(fs,'config','scheduleMeta'), {effectiveDate});
-      } else {
-        showToast('✅ Perubahan jadwal disimpan (hanya berlaku ke depan).');
-        return;
-      }
+    if(!retroDate){
+      showToast(`✅ ${delta.length} perubahan sesi disimpan (berlaku ke depan).`);
+      return;
     }
-
-    if(effectiveDate > todayKey){
-      showToast('✅ Perubahan jadwal disimpan (berlaku ke depan). Tanggal berlaku belum lewat.');
+    if(retroDate > todayKey){
+      showToast(`✅ ${delta.length} perubahan sesi disimpan. ${fmtEffectiveDate(retroDate)} belum lewat, jadi tidak ada tanggal lampau yang disesuaikan.`);
       return;
     }
 
-    // Pratinjau jumlah tanggal terdampak.
-    const dowDates = datesInRangeByDow(effectiveDate, todayKey);
-    let affected = 0;
-    delta.forEach(dch=>{ affected += (dowDates[dch.day]||[]).length; });
-
-    const ok = confirm(
-      `Perubahan jadwal:\n${summarizeDelta(delta)}\n\n` +
-      `Terapkan juga MUNDUR ke tanggal yang sudah lalu sejak jadwal terakhir berlaku (${effectiveDate})?\n\n` +
-      `• Hanya sesi yang berubah yang disesuaikan; kehadiran lain tidak diubah.\n` +
-      `• Sekitar ${affected} tanggal-guru akan disesuaikan.\n` +
-      `• Hitungan jam pada bulan yang sudah lewat bisa berubah.\n\n` +
-      `OK = Terapkan mundur    •    Batal = Hanya ke depan`
-    );
-    if(!ok){
-      showToast('✅ Perubahan jadwal disimpan (hanya berlaku ke depan).');
-      return;
+    // Tanggal pilihan langsung diterapkan, tanpa konfirmasi lagi.
+    // Catat sebagai tanggal berlaku hanya bila jadwal aktif belum punya catatan.
+    if(!(await getScheduleEffectiveDate())){
+      await setDoc(doc(fs,'config','scheduleMeta'), {effectiveDate:retroDate});
+      _savedScheduleEffective = retroDate;
+      renderScheduleEffectiveInfo();
     }
 
-    showLoading('Menerapkan perubahan ke tanggal sebelumnya...');
+    showLoading(`Menerapkan perubahan sejak ${fmtEffectiveDate(retroDate)}...`);
+    const dowDates = datesInRangeByDow(retroDate, todayKey);
     const applied = await applyScheduleDeltaRetro(delta, dowDates);
     hideLoading();
-    showToast(`✅ Perubahan diterapkan ke ${applied} tanggal sejak ${effectiveDate}. Sesi & data lain tidak diubah.`);
+    showToast(`✅ ${delta.length} perubahan sesi diterapkan ke ${applied} tanggal sejak ${fmtEffectiveDate(retroDate)}. Sesi & data lain tidak diubah.`);
   }catch(e){ hideLoading(); showToast('Gagal simpan: '+e.message, false); }
 }
 window.saveScheduleEdits = saveScheduleEdits;
